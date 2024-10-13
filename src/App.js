@@ -1,24 +1,38 @@
-import logo from './logo.svg';
-import './App.css';
+import { BrowserRouter as Router } from "react-router-dom";
+import AppRoutes from "./routes/Routes";
+import { AuthProvider } from "./contexts/AuthContext";
+import { useTranslation } from "react-i18next";
+import { ToastContainer } from "react-toastify";
+import store from "./store/store";
+import { Provider } from "react-redux";
+import { FileProvider } from "./contexts/FileContext";
+import "./i18n";
+import { PlatformsProvider } from "./contexts/PlatformsContext";
 
 function App() {
+  const { t, i18n } = useTranslation();
+
+  const changeLanguage = (lng) => {
+    i18n.changeLanguage(lng);
+    document.body.setAttribute("dir", lng === "ar" ? "rtl" : "ltr");
+  };
+
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
+    <Provider store={store}>
+      <Router>
+        <AuthProvider>
+          <PlatformsProvider>
+            <FileProvider>
+              {/* <h1>{t("welcome")}</h1>
+        <button onClick={() => changeLanguage("en")}>English</button>
+        <button onClick={() => changeLanguage("ar")}>عربي</button> */}
+              <AppRoutes />
+            </FileProvider>
+          </PlatformsProvider>
+        </AuthProvider>
+        <ToastContainer />
+      </Router>
+    </Provider>
   );
 }
 
