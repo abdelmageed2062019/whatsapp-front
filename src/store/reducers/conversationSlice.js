@@ -1,16 +1,18 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import {
   storeConversation,
-  //   getConversations,
-} from "../../services/conversationService"; // Ensure you have this import
+  showConversation,
+  showAllConversation,
+  deleteConversation,
+} from "../../services/conversationService";
 
-// Async thunk for storing conversation data
+// Async thunk to store conversation
 export const storeConversationAsync = createAsyncThunk(
   "conversation/storeConversation",
   async (data, { rejectWithValue }) => {
     try {
       const response = await storeConversation(data);
-      return response; // Assuming response contains the stored conversation details
+      return response;
     } catch (error) {
       return rejectWithValue(
         error.response?.data || "Failed to store conversation"
@@ -19,70 +21,137 @@ export const storeConversationAsync = createAsyncThunk(
   }
 );
 
-// Async thunk for fetching conversations
-// export const fetchConversationsAsync = createAsyncThunk(
-//   "conversation/fetchConversations",
-//   async (_, { rejectWithValue }) => {
-//     try {
-//       const response = await getConversations();
-//       return response; // Assuming response contains the list of conversations
-//     } catch (error) {
-//       return rejectWithValue(
-//         error.response?.data || "Failed to fetch conversations"
-//       );
-//     }
-//   }
-// );
+// Async thunk to fetch a single conversation by id
+export const fetchConversationAsync = createAsyncThunk(
+  "conversation/fetchConversation",
+  async (id, { rejectWithValue }) => {
+    try {
+      const response = await showConversation(id);
+      return response;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data || "Failed to fetch conversation"
+      );
+    }
+  }
+);
 
-// Create conversation slice
+// Async thunk to fetch all conversations
+export const fetchAllConversationsAsync = createAsyncThunk(
+  "conversation/fetchAllConversations",
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await showAllConversation();
+      return response;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data || "Failed to fetch conversations"
+      );
+    }
+  }
+);
+
+// Async thunk to delete a conversation by id
+export const deleteConversationAsync = createAsyncThunk(
+  "conversation/deleteConversation",
+  async (id, { rejectWithValue }) => {
+    try {
+      const response = await deleteConversation(id);
+      return response;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data || "Failed to delete conversation"
+      );
+    }
+  }
+);
+
 export const conversationSlice = createSlice({
   name: "conversation",
   initialState: {
-    conversations: [], // To store a list of conversations
-    status: "idle", // idle | loading | succeeded | failed
-    error: null, // For error messages
+    conversations: [],
+    currentConversation: null,
+    messages: [],
+    status: "idle",
+    error: null,
   },
   reducers: {
     clearConversations: (state) => {
-      state.conversations = []; // Clear conversations if needed
+      state.conversations = [];
+    },
+    clearCurrentConversation: (state) => {
+      state.currentConversation = null;
+      state.messages = [];
     },
   },
   extraReducers: (builder) => {
-    // Handling storeConversationAsync
     builder
+      // Handle storing conversation
       .addCase(storeConversationAsync.pending, (state) => {
-        state.status = "loading"; // Set loading status
+        state.status = "loading";
       })
       .addCase(storeConversationAsync.fulfilled, (state, action) => {
-        state.status = "succeeded"; // Set succeeded status
-        state.conversations.push(action.payload); // Add the new conversation to the list
+        state.status = "succeeded";
+        state.conversations.push(action.payload);
       })
       .addCase(storeConversationAsync.rejected, (state, action) => {
-        state.status = "failed"; // Set failed status
-        state.error = action.payload; // Store error message
+        state.status = "failed";
+        state.error = action.payload;
+      })
+
+      // Handle fetching single conversation
+      .addCase(fetchConversationAsync.pending, (state) => {
+        state.status = "loading";
+      })
+      .addCase(fetchConversationAsync.fulfilled, (state, action) => {
+        state.status = "succeeded";
+        state.currentConversation = action.payload.data;
+        state.messages = action.payload.messages || [];
+      })
+      .addCase(fetchConversationAsync.rejected, (state, action) => {
+        state.status = "failed";
+        state.error = action.payload;
+      })
+
+      // Handle fetching all conversations
+      .addCase(fetchAllConversationsAsync.pending, (state) => {
+        state.status = "loading";
+      })
+      .addCase(fetchAllConversationsAsync.fulfilled, (state, action) => {
+        state.status = "succeeded";
+        state.conversations = action.payload;
+      })
+      .addCase(fetchAllConversationsAsync.rejected, (state, action) => {
+        state.status = "failed";
+        state.error = action.payload;
+      })
+
+      // Handle deleting conversation
+      .addCase(deleteConversationAsync.pending, (state) => {
+        state.status = "loading";
+      })
+      .addCase(deleteConversationAsync.fulfilled, (state, action) => {
+        state.status = "succeeded";
+        // Remove the deleted conversation from the state
+        state.conversations = state.conversations.filter(
+          (conversation) => conversation.id !== action.meta.arg
+        );
+      })
+      .addCase(deleteConversationAsync.rejected, (state, action) => {
+        state.status = "failed";
+        state.error = action.payload;
       });
-    // Handling fetchConversationsAsync
-    //  .addCase(fetchConversationsAsync.pending, (state) => {
-    //    state.status = "loading"; // Set loading status
-    //  })
-    //  .addCase(fetchConversationsAsync.fulfilled, (state, action) => {
-    //    state.status = "succeeded"; // Set succeeded status
-    //    state.conversations = action.payload; // Set the conversations list
-    //  })
-    //  .addCase(fetchConversationsAsync.rejected, (state, action) => {
-    //    state.status = "failed"; // Set failed status
-    //    state.error = action.payload; // Store error message
-    //  });
   },
 });
 
-// Export the actions from the slice
-export const { clearConversations } = conversationSlice.actions;
+export const { clearConversations, clearCurrentConversation } =
+  conversationSlice.actions;
 
-// Selectors
 export const selectConversations = (state) => state.conversation.conversations;
+export const selectCurrentConversation = (state) =>
+  state.conversation.currentConversation;
+export const selectMessages = (state) => state.conversation.messages;
 export const selectConversationStatus = (state) => state.conversation.status;
 export const selectConversationError = (state) => state.conversation.error;
 
-// Export the reducer to be used in the store
 export default conversationSlice.reducer;

@@ -27,11 +27,11 @@ const SideBar = ({ isAsideVisible }) => {
       text: "الرئيسية",
       icon: <Home style={{ fill: iconColor }} />,
     },
-    {
-      path: "/notifications",
-      text: "الإشعارات",
-      icon: <Notif style={{ fill: iconColor }} />,
-    },
+    // {
+    //   path: "/notifications",
+    //   text: "الإشعارات",
+    //   icon: <Notif style={{ fill: iconColor }} />,
+    // },
     {
       path: "/profile",
       text: "ملفي",
@@ -72,41 +72,41 @@ const SideBar = ({ isAsideVisible }) => {
       text: "إدارة الملفات",
       icon: <Media style={{ fill: iconColor }} />,
     },
-    {
-      path: "/linked-platforms",
-      text: "المنصات المرتبطة",
-      icon: <Chain style={{ fill: iconColor }} />,
-    },
+    // {
+    //   path: "/linked-platforms",
+    //   text: "المنصات المرتبطة",
+    //   icon: <Chain style={{ fill: iconColor }} />,
+    // },
     {
       path: "/employees",
       text: "الموظفين",
       icon: <Employee style={{ fill: iconColor }} />,
     },
-    {
-      path: "/developers",
-      text: "المطورين",
-      icon: <API style={{ fill: iconColor }} />,
-    },
-    {
-      path: "/technical-support",
-      text: "الدعم الفني",
-      icon: <Support style={{ fill: iconColor }} />,
-    },
+    // {
+    //   path: "/developers",
+    //   text: "المطورين",
+    //   icon: <API style={{ fill: iconColor }} />,
+    // },
+    // {
+    //   path: "/technical-support",
+    //   text: "الدعم الفني",
+    //   icon: <Support style={{ fill: iconColor }} />,
+    // },
     {
       path: "/subscription-manager",
       text: "مدير الاشتراكات",
       icon: <Subscribe style={{ fill: iconColor }} />,
     },
-    {
-      path: "/program-academy",
-      text: "أكاديمية البرنامج",
-      icon: <Acadim style={{ fill: iconColor }} />,
-    },
-    {
-      path: "/telegram-channel",
-      text: "قناة التلجرام",
-      icon: <Telegram style={{ fill: iconColor }} />,
-    },
+    // {
+    //   path: "/program-academy",
+    //   text: "أكاديمية البرنامج",
+    //   icon: <Acadim style={{ fill: iconColor }} />,
+    // },
+    // {
+    //   path: "/telegram-channel",
+    //   text: "قناة التلجرام",
+    //   icon: <Telegram style={{ fill: iconColor }} />,
+    // },
   ];
 
   return (

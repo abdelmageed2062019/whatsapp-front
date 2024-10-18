@@ -2,7 +2,7 @@ import { BrowserRouter as Router } from "react-router-dom";
 import AppRoutes from "./routes/Routes";
 import { AuthProvider } from "./contexts/AuthContext";
 import { useTranslation } from "react-i18next";
-import { ToastContainer } from "react-toastify";
+import { Bounce, ToastContainer } from "react-toastify";
 import store from "./store/store";
 import { Provider } from "react-redux";
 import { FileProvider } from "./contexts/FileContext";
@@ -30,7 +30,19 @@ function App() {
             </FileProvider>
           </PlatformsProvider>
         </AuthProvider>
-        <ToastContainer />
+        <ToastContainer
+          position="top-right"
+          autoClose={5000}
+          hideProgressBar={false}
+          newestOnTop={false}
+          closeOnClick
+          rtl={false}
+          pauseOnFocusLoss
+          draggable
+          pauseOnHover
+          theme="light"
+          transition={Bounce}
+        />
       </Router>
     </Provider>
   );

@@ -37,3 +37,21 @@ export const getConversation = async (id) => {
     console.log(error);
   }
 };
+
+export const receiveMessage = async (data) => {
+  try {
+    const token = localStorage.getItem("token");
+    const response = await axios.post(`${API_URL}/receive`, data, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    if (response.data && response.data.data) {
+      return response.data.data;
+    } else {
+      throw new Error("Unexpected response format");
+    }
+  } catch (error) {
+    console.log(error);
+  }
+};

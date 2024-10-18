@@ -1,7 +1,13 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
-import { uploadFiles, getFiles } from "../../services/filesServices";
+import {
+  uploadFiles,
+  deleteFile,
+  getAllFiles,
+} from "../../services/filesServices";
 
 // Async Thunks
+
+// Upload Files
 export const uploadFilesAsync = createAsyncThunk(
   "files/uploadFiles",
   async ({ name, content, id }, { rejectWithValue }) => {
@@ -11,7 +17,9 @@ export const uploadFilesAsync = createAsyncThunk(
       formData.append("type", name);
       formData.append("user_id", id);
       const response = await uploadFiles(formData);
-      return response; // Return only the data from the response object
+      console.log(response);
+
+      return response.errNum; // Return only the 'data' part of the response
     } catch (error) {
       const errorMessage =
         error.response?.data?.message || error.message || "Upload failed";
@@ -20,12 +28,28 @@ export const uploadFilesAsync = createAsyncThunk(
   }
 );
 
-export const getFilesAsync = createAsyncThunk(
-  "files/getFiles",
+// Get All Files
+export const getAllFilesAsync = createAsyncThunk(
+  "files/getAllFiles",
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await getAllFiles();
+      return response; // Return the 'data' part of the response
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data || { message: error.message }
+      );
+    }
+  }
+);
+
+// Delete File
+export const deleteFileAsync = createAsyncThunk(
+  "files/deleteFile",
   async (id, { rejectWithValue }) => {
     try {
-      const response = await getFiles(id);
-      return response;
+      await deleteFile(id); // No need to return the full response
+      return { id }; // Return the ID of the deleted file
     } catch (error) {
       return rejectWithValue(
         error.response?.data || { message: error.message }
@@ -41,8 +65,12 @@ const initialState = {
   uploadError: null,
   currentFileName: "",
   currentFileContent: null,
-  filesFetchStatus: "idle",
-  filesFetchError: null,
+  allFilesFetchStatus: "idle", // State for fetching all files
+  allFilesFetchError: null, // Error state for fetching all files
+  yourSizeCount: 0, // To store yourSizeCount from response
+  yourFreeSize: 0, // To store yourFreeSize from response
+  deleteStatus: "idle",
+  deleteError: null,
 };
 
 // Create Slice
@@ -62,7 +90,8 @@ const fileSlice = createSlice({
     },
     clearErrors: (state) => {
       state.uploadError = null;
-      state.filesFetchError = null;
+      state.allFilesFetchError = null;
+      state.deleteError = null;
     },
   },
   extraReducers: (builder) => {
@@ -74,7 +103,7 @@ const fileSlice = createSlice({
       })
       .addCase(uploadFilesAsync.fulfilled, (state, action) => {
         state.uploadStatus = "succeeded";
-        state.files.push(action.payload); // Add the new file to the list
+        state.files.push(action.payload[0]); // Add the first file from the 'data' array
         state.currentFileName = "";
         state.currentFileContent = null;
       })
@@ -82,18 +111,35 @@ const fileSlice = createSlice({
         state.uploadStatus = "failed";
         state.uploadError = action.payload;
       })
-      // Handle getFilesAsync
-      .addCase(getFilesAsync.pending, (state) => {
-        state.filesFetchStatus = "loading";
-        state.filesFetchError = null;
+      // Handle getAllFilesAsync
+      .addCase(getAllFilesAsync.pending, (state) => {
+        state.allFilesFetchStatus = "loading";
+        state.allFilesFetchError = null;
       })
-      .addCase(getFilesAsync.fulfilled, (state, action) => {
-        state.filesFetchStatus = "succeeded";
-        state.files = action.payload;
+      .addCase(getAllFilesAsync.fulfilled, (state, action) => {
+        state.allFilesFetchStatus = "succeeded";
+        state.files = action.payload.data; // Update state with all files from 'data'
+        state.yourSizeCount = action.payload.yourSizeCount; // Update with yourSizeCount from response
+        state.yourFreeSize = action.payload.yourFreeSize; // Update with yourFreeSize from response
       })
-      .addCase(getFilesAsync.rejected, (state, action) => {
-        state.filesFetchStatus = "failed";
-        state.filesFetchError = action.payload;
+      .addCase(getAllFilesAsync.rejected, (state, action) => {
+        state.allFilesFetchStatus = "failed";
+        state.allFilesFetchError = action.payload;
+      })
+      // Handle deleteFileAsync
+      .addCase(deleteFileAsync.pending, (state) => {
+        state.deleteStatus = "loading";
+        state.deleteError = null;
+      })
+      .addCase(deleteFileAsync.fulfilled, (state, action) => {
+        state.deleteStatus = "succeeded";
+        state.files = state.files.filter(
+          (file) => file.id !== action.payload.id
+        ); // Remove the deleted file from the list
+      })
+      .addCase(deleteFileAsync.rejected, (state, action) => {
+        state.deleteStatus = "failed";
+        state.deleteError = action.payload;
       });
   },
 });
@@ -115,5 +161,11 @@ export const selectUploadError = (state) => state.files.uploadError;
 export const selectCurrentFileName = (state) => state.files.currentFileName;
 export const selectCurrentFileContent = (state) =>
   state.files.currentFileContent;
-export const selectFilesFetchStatus = (state) => state.files.filesFetchStatus;
-export const selectFilesFetchError = (state) => state.files.filesFetchError;
+export const selectAllFilesFetchStatus = (state) =>
+  state.files.allFilesFetchStatus;
+export const selectAllFilesFetchError = (state) =>
+  state.files.allFilesFetchError;
+export const selectDeleteStatus = (state) => state.files.deleteStatus;
+export const selectDeleteError = (state) => state.files.deleteError;
+export const selectYourSizeCount = (state) => state.files.yourSizeCount;
+export const selectYourFreeSize = (state) => state.files.yourFreeSize;

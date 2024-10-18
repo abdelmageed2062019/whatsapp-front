@@ -1,11 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { useDispatch, useSelector } from "react-redux";
+import { useDispatch } from "react-redux";
+import { toast } from "react-toastify";
 import {
-  selectUploadStatus,
-  selectUploadError,
   setCurrentFileName,
-  setCurrentFileContent,
   clearCurrentFile,
   uploadFilesAsync,
 } from "../../store/reducers/filesSlice";
@@ -19,55 +17,57 @@ const UploadForm = () => {
   const [fileContent, setFileContent] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null);
   const [userId, setUserId] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
-  const uploadStatus = useSelector(selectUploadStatus);
-  const uploadError = useSelector(selectUploadError);
-
   useEffect(() => {
-    // Fetch user data
     const fetchUserData = async () => {
-      const userData = await getUserData();
-      setUserId(userData.id);
+      try {
+        const { data } = await getUserData();
+
+        setUserId(data.id);
+      } catch (error) {
+        toast.error("Failed to fetch user data");
+      }
     };
     fetchUserData();
 
     return () => {
-      // Clear file data when component unmounts
       dispatch(clearCurrentFile());
     };
   }, [dispatch]);
 
   const handleFileChange = (e) => {
     const file = e.target.files[0];
-    setFileContent(file);
-    setCurrentFileName(file.name); // Dispatch action to update file name in state
-    if (
-      file &&
-      (file.type.startsWith("image/") || file.type === "application/pdf")
-    ) {
-      const fileUrl = URL.createObjectURL(file);
-      setPreviewUrl(fileUrl);
-    } else {
-      setPreviewUrl(null);
+    if (file) {
+      setFileContent(file);
+      setFileName(file.name);
+      dispatch(setCurrentFileName(file.name));
+
+      if (file.type.startsWith("image/") || file.type === "application/pdf") {
+        const fileUrl = URL.createObjectURL(file);
+        setPreviewUrl(fileUrl);
+      } else {
+        setPreviewUrl(null);
+      }
     }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (fileName && fileContent) {
-      dispatch(
+
+    setIsLoading(true);
+    try {
+      await dispatch(
         uploadFilesAsync({ name: fileName, content: fileContent, id: userId })
-      )
-        .unwrap()
-        .then(() => {
-          navigate("/file-management");
-        })
-        .catch((error) => {
-          console.error("Upload failed:", error);
-        });
-      // Clear the current file data from the Redux store
+      ).unwrap();
+      toast.success("File uploaded successfully!");
+      navigate("/file-management");
+    } catch (error) {
+      toast.error(error.message || "Upload failed. Please try again.");
+    } finally {
+      setIsLoading(false);
       dispatch(clearCurrentFile());
     }
   };
@@ -76,6 +76,7 @@ const UploadForm = () => {
     setFileContent(null);
     setPreviewUrl(null);
     setFileName("");
+    dispatch(clearCurrentFile());
   };
 
   return (
@@ -84,7 +85,7 @@ const UploadForm = () => {
         <div className="row">
           <div className="col-md-12">
             <h2>إدارة الملفات</h2>
-            <p> نموذج الملف</p>
+            <p>نموذج الملف</p>
           </div>
         </div>
         <div>
@@ -123,7 +124,7 @@ const UploadForm = () => {
             {previewUrl && (
               <div className="mb-3 p-3">
                 <label className="form-label">معاينة الملف</label>
-                {fileContent.type.startsWith("image/") ? (
+                {fileContent && fileContent.type.startsWith("image/") ? (
                   <img src={previewUrl} alt="Preview" className="img-fluid" />
                 ) : (
                   <embed src={previewUrl} width="100%" height="400px" />
@@ -132,23 +133,25 @@ const UploadForm = () => {
             )}
 
             <div className="d-flex justify-content-between">
-              <button type="submit" className="btn m-3 text-white">
-                رفع الملف
+              <button
+                type="submit"
+                className="btn m-3 text-white"
+                disabled={isLoading}
+              >
+                {isLoading ? "جاري الرفع..." : "رفع الملف"}
               </button>
               {fileContent && (
                 <button
                   type="button"
                   className="btn m-3 text-white bg-danger"
                   onClick={handleDeleteFile}
+                  disabled={isLoading}
                 >
                   حذف الملف
                 </button>
               )}
             </div>
           </form>
-          {uploadError && (
-            <div className="alert alert-danger">{uploadError.message}</div>
-          )}
         </div>
       </div>
     </Layout>

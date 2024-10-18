@@ -10,7 +10,7 @@ const NewSection = () => {
             <img src={Person} class="img-fluid" alt="person" />
           </div>
 
-          <div className="col-md-7 text-end">
+          <div className="col-md-7 text-end mt-5 ">
             <div className="new-text">
               <h2>أد واتس في ثوبها الجديد</h2>
               <p className="second text-white">

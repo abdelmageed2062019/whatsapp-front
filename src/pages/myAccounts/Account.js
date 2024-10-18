@@ -1,23 +1,54 @@
-import React from "react";
-import { Link, useLocation } from "react-router-dom"; // Import useLocation to get the state
+import React, { useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom"; // Import useNavigate for navigation
+import { useDispatch, useSelector } from "react-redux";
+import {
+  fetchAccountsAsync,
+  selectAccounts,
+  selectAccountStatus,
+  selectAccountError,
+} from "../../store/reducers/accountSlice";
 import Layout from "../../components/Layout/Layout";
 import { ReactComponent as Conect } from "../../assets/model.svg";
-import axios from "axios"; // For deleting the number
+import axios from "axios";
+import { toast } from "react-toastify";
 import "./Account.scss";
 
 const Account = () => {
-  const location = useLocation();
-  const phoneNumber = location.state?.phoneNumber; // Get phone number from state
+  const dispatch = useDispatch();
+  const navigate = useNavigate(); // Initialize navigate
+
+  // Get accounts and status from Redux store
+  const accounts = useSelector(selectAccounts);
+  const status = useSelector(selectAccountStatus);
+  const error = useSelector(selectAccountError);
+
+  // Fetch accounts when component mounts
+  useEffect(() => {
+    dispatch(fetchAccountsAsync());
+  }, [dispatch]);
 
   const deletePhoneNumber = async () => {
     try {
       await axios.delete("http://localhost:4000/delete-number");
       alert("Phone number deleted successfully!");
-      window.location.reload(); // Reload the page after deletion
     } catch (error) {
       console.error("Error deleting phone number", error);
+      alert("Failed to delete phone number. Please try again.");
     }
   };
+
+  const handleAddAccount = () => {
+    const planLimit = accounts.plan?.plan_no; // Assuming accounts.plan.plan_no gives the limit
+    const accountCount = accounts.numbers?.length || 0; // Safe access to the length
+
+    if (accountCount >= planLimit) {
+      toast.warning("لا يمكن ان تضيف اكثر من 1 حساب");
+    } else {
+      navigate("/my-accounts/connect"); // Navigate to connect if within limit
+    }
+  };
+
+  console.log(accounts);
 
   return (
     <Layout>
@@ -30,28 +61,45 @@ const Account = () => {
         </div>
 
         <div className="mb-3">
-          <Link
-            to="/my-accounts/connect"
+          <button
+            onClick={handleAddAccount} // Call handleAddAccount on button click
             className="btn account d-inline-block"
           >
             <Conect />
             <p>أضف حساب </p>
-          </Link>
+          </button>
         </div>
 
-        {/* Display the phone number if it's available */}
-        {phoneNumber && (
-          <div className="mb-3">
-            <h3>الاحسابات</h3>
+        {/* Display accounts fetched from Redux store */}
+        <div className="mb-3">
+          <h3>الاحسابات</h3>
 
-            <div className="account-info">
-              <h3>{phoneNumber}</h3>
-              <button className="btn btn-danger" onClick={deletePhoneNumber}>
-                Delete Number
-              </button>
+          {/* Show loading, error, or list of accounts */}
+          {status === "loading" && <p>Loading accounts...</p>}
+          {status === "failed" && <p className="text-danger">Error: {error}</p>}
+          {status === "succeeded" && (
+            <div>
+              {/* Check if accounts.numbers is defined and has length */}
+              {Array.isArray(accounts.numbers) &&
+              accounts.numbers.length > 0 ? (
+                accounts.numbers.map((account, index) => (
+                  <div key={index} className="account-info">
+                    <h3>{account.name}</h3>
+                    <h3>{account.phone_number}</h3>
+                    <button
+                      className="btn btn-danger"
+                      onClick={deletePhoneNumber}
+                    >
+                      Delete Number
+                    </button>
+                  </div>
+                ))
+              ) : (
+                <p>No accounts available. Please add an account.</p>
+              )}
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </Layout>
   );

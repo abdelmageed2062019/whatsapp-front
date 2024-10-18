@@ -5,6 +5,7 @@ footer {
   position: relative;
   overflow: hidden; /* Make sure content doesn't overflow */
   bottom: 0px;
+  padding: 2rem;
 
   &::after {
     content: "";
@@ -29,14 +30,44 @@ footer {
 
     li {
       margin-bottom: 1rem;
+
+      a {
+        color: #fff;
+        text-decoration: none;
+        transition: all 0.5s ease-in-out;
+
+        &:hover {
+          text-decoration: underline;
+        }
+      }
     }
   }
 
   .social-icons {
-    display: flex;
-    gap: 1rem;
-    justify-content: center;
     margin-top: 1rem;
+
+    ul {
+      display: flex;
+      gap: 1rem;
+      justify-content: center;
+      align-items: center;
+
+      li {
+        background-color: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        width: 35px;
+        height: 35px;
+        transition: all 0.5s ease-in-out;
+
+        &:hover {
+          cursor: pointer;
+          opacity: 0.8;
+        }
+      }
+    }
 
     .social-icons svg {
       width: 25px !important;

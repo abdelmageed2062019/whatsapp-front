@@ -1,8 +1,14 @@
 import React, { useState, useEffect } from "react";
 import Layout from "../../components/Layout/Layout";
-import { getConversation } from "../../services/messageService";
+import {
+  getConversation,
+  storeMessage,
+  receiveMessage,
+} from "../../services/messageService";
+import { showConversation } from "../../services/conversationService";
 import { useParams } from "react-router-dom";
 import axios from "axios";
+import io from "socket.io-client"; // Import Socket.io client
 
 const Conversation = () => {
   const [messages, setMessages] = useState([]);
@@ -38,32 +44,53 @@ const Conversation = () => {
       }
     };
 
-    fetchConversation();
-
-    // Fetch messages for the conversation when it loads
     const fetchMessages = async () => {
       try {
-        const response = await axios.get(
-          `http://localhost:4000/messages?conversationId=${conId}`
+        const { messages } = await showConversation(conId);
+        // Filter messages to only include those with matching conversation_id
+        const filteredMessages = messages.filter(
+          (message) => message.conversation_id === +conId
         );
-        setMessages(response.data); // Assuming the API returns an array of messages
+        console.log(filteredMessages);
+
+        setMessages(filteredMessages);
       } catch (error) {
         console.error("Failed to fetch messages:", error);
       }
     };
 
+    // Connect to Socket.io
+    const socket = io("http://localhost:4000");
+
+    // Listen for received messages
+    socket.on("messageReceived", (newMessage) => {
+      receiveMessage({
+        sender_number: newMessage.from.substring(1),
+        receive_number: newMessage.to,
+        body: newMessage.body,
+      });
+      // Add condition to check if the message belongs to the current conversation
+      if (newMessage.conversation_id === conId) {
+        setMessages((prevMessages) => [...prevMessages, newMessage]);
+      }
+    });
+
+    fetchConversation();
     fetchMessages();
 
-    // Set up an interval to fetch messages every 5 seconds
     const intervalId = setInterval(fetchMessages, 5000);
 
-    // Cleanup interval on unmount
-    return () => clearInterval(intervalId);
+    return () => {
+      clearInterval(intervalId);
+      socket.disconnect(); // Disconnect from Socket.io on unmount
+    };
   }, [conId]);
+
+  console.log();
 
   const formatPhoneNumber = (number) => {
     if (number.startsWith("0")) {
-      return `2${number.substring(1)}`; // Formatting number for Egypt
+      return `2${number.substring(1)}`;
     }
     return number;
   };
@@ -79,31 +106,45 @@ const Conversation = () => {
     }
 
     if (inputMessage.trim() !== "") {
-      setInputMessage(""); // Clear input after sending
+      const messageToSend = inputMessage;
+      setInputMessage("");
 
       try {
         const formattedNumber = formatPhoneNumber(conversationData.phone);
 
-        // Send the message via the API
         const response = await axios.post(
           "http://localhost:4000/send-message",
           {
             number: formattedNumber,
-            message: inputMessage, // Ensure inputMessage is correctly passed
+            message: messageToSend,
           }
         );
 
         if (response.data.success) {
-          // Optionally, fetch updated messages after sending
-          const messagesResponse = await axios.get(
-            `http://localhost:4000/messages?conversationId=${conId}`
-          );
-          setMessages(messagesResponse.data);
+          await storeMessage({
+            conversation_id: conversationData.id,
+            sender_number: conversationData.phone_sender,
+            receive_number: formattedNumber,
+            body: messageToSend,
+            user_id: conversationData.user_id,
+            employee_id: conversationData.employee_id,
+            receiver_name: conversationData.receiver_name,
+            type: "sent",
+          });
+
+          setMessages((prevMessages) => [
+            ...prevMessages,
+            {
+              body: messageToSend,
+              type: "sent",
+              conversation_id: conversationData.id,
+            },
+          ]);
         } else {
           console.error("Failed to send message:", response.data.error);
         }
       } catch (error) {
-        console.error("Error sending message:", error);
+        console.error("Error sending or storing message:", error);
       }
     }
   };
@@ -121,34 +162,32 @@ const Conversation = () => {
                     message.type === "sent" ? "text-end" : "text-start"
                   }`}
                 >
-                  <div
-                    className={`d-inline-block p-2 rounded ${
-                      message.type === "sent"
-                        ? "bg-primary text-white" // Sent messages (user)
-                        : "bg-light" // Received messages
+                  <span
+                    className={`badge fs-3 ${
+                      message.type === "sent" ? "bg-success" : "bg-primary"
                     }`}
                   >
                     {message.body}
-                  </div>
+                  </span>
                 </div>
               ))}
             </div>
           </div>
         </div>
-        <div className="row p-3 bg-light">
+        <div className="row">
           <div className="col-md-8 mx-auto">
-            <div className="input-group">
+            <div className="input-group mb-3">
               <input
                 type="text"
-                className="form-control rounded-0"
+                className="form-control"
+                placeholder="Type your message"
                 value={inputMessage}
                 onChange={(e) => setInputMessage(e.target.value)}
-                placeholder="Type a message..."
               />
               <button
-                className="btn btn-primary rounded-0"
+                className="btn btn-primary"
+                type="button"
                 onClick={handleSendMessage}
-                disabled={loading || !inputMessage.trim()}
               >
                 Send
               </button>

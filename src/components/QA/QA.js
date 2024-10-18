@@ -44,7 +44,7 @@ const AccordionItem = ({ question, answer, isOpen, onToggle, index }) => {
           aria-expanded={isOpen}
           aria-controls={`collapse${index}`}
         >
-          <span className="ml-auto">{question}</span>
+          <span className="mr-auto">{question}</span>
         </button>
       </h2>
       <div
@@ -66,11 +66,11 @@ const FAQAccordion = () => {
   };
 
   return (
-    <section className="faq-section">
+    <section className="faq-section" id="faq">
       <div className="container my-5">
         <div className="row">
           <div className="col-md-12 text-center">
-            <h2 className="fw-bold">الأسئلة الشائعة</h2>
+            <h2 className="fw-bold my-5">الأسئلة الشائعة</h2>
           </div>
         </div>
         <div className="accordion" id="faqAccordion">

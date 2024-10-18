@@ -2,6 +2,7 @@ import axios from "axios";
 
 const API_URL = `${process.env.REACT_APP_API_BASE_URL}`;
 
+// Login function
 export const login = async (email, password) => {
   try {
     const response = await axios.post(
@@ -16,36 +17,30 @@ export const login = async (email, password) => {
         },
       }
     );
+
     if (response.data && response.data.data) {
       return response.data.data;
     } else {
       throw new Error("Unexpected response format");
     }
   } catch (error) {
-    console.error(
-      "Login error:",
-      error.response ? error.response.data : error.message
-    );
-    throw new Error("Login failed. Please check your credentials.");
+    // Return error response instead of logging it
+    return error.response
+      ? error.response.data
+      : { message: "Login failed. Please check your credentials." };
   }
 };
 
-export const signup = async (
-  name,
-  email,
-  phone,
-  company,
-  country_code,
-  password
-) => {
+// Signup function
+export const signup = async (name, email, phone, company, password) => {
   try {
     const data = {
       name,
       email,
       phone,
       company,
-      country_code,
       password,
+      plan_id: 1,
     };
 
     const response = await axios.post(`${API_URL}/auth/register`, data, {
@@ -55,13 +50,14 @@ export const signup = async (
     });
 
     if (response.data.status === true) {
-      console.log("Signup success: ", response.data);
       return response.data;
     }
 
     return response.data;
   } catch (error) {
-    console.error("Signup error: ", error);
-    throw error;
+    // Return error response instead of logging it
+    return error.response
+      ? error.response.data
+      : { message: "Signup failed. Please try again." };
   }
 };

@@ -1,15 +1,17 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
-import { updateUserData, changePassword } from "../../services/profileService"; // Add the changePassword service
+import { updateUserData, changePassword } from "../../services/profileService";
 
 // Thunk for updating the profile
 export const updateProfileAsync = createAsyncThunk(
   "profile/updateProfileAsync",
   async (profileData, { rejectWithValue }) => {
     try {
-      const res = await updateUserData(profileData);
-      return res.data;
+      const response = await updateUserData(profileData);
+      return response.data;
     } catch (error) {
-      return rejectWithValue(error.response.data);
+      return rejectWithValue(
+        error.response?.data || "Failed to update profile"
+      );
     }
   }
 );
@@ -19,25 +21,27 @@ export const changePasswordAsync = createAsyncThunk(
   "profile/changePasswordAsync",
   async (passwordData, { rejectWithValue }) => {
     try {
-      const res = await changePassword(passwordData);
-      return res.data;
+      const response = await changePassword(passwordData);
+      return response.data;
     } catch (error) {
-      return rejectWithValue(error.response.data);
+      return rejectWithValue(
+        error.response?.data || "Failed to change password"
+      );
     }
   }
 );
 
 // Initial state
 const initialState = {
-  name: "",
-  company: "",
-  tax_number: "",
-  currPassword: "",
-  newPassword: "",
-  status: "idle",
-  passwordStatus: "idle", // Separate status for password change
+  profile: {
+    name: "",
+    company: "",
+    tax_number: "",
+  },
+  status: "idle", // Status for profile update
   error: null,
-  passwordError: null, // Separate error for password change
+  passwordStatus: "idle", // Status for password change
+  passwordError: null,
 };
 
 // Create a slice
@@ -45,11 +49,9 @@ const profileSlice = createSlice({
   name: "profile",
   initialState,
   reducers: {
-    updateProfile(state, action) {
-      return {
-        ...state,
-        ...action.payload,
-      };
+    clearErrors(state) {
+      state.error = null;
+      state.passwordError = null;
     },
   },
   extraReducers: (builder) => {
@@ -60,25 +62,19 @@ const profileSlice = createSlice({
       })
       .addCase(updateProfileAsync.fulfilled, (state, action) => {
         state.status = "succeeded";
-        state.name = action.payload?.name || state.name;
-        state.company = action.payload?.company || state.company;
-        state.tax_number = action.payload?.tax_number || state.tax_number;
-        state.error = null; // Clear any previous errors
+        state.profile = { ...state.profile, ...action.payload };
       })
       .addCase(updateProfileAsync.rejected, (state, action) => {
         state.status = "failed";
         state.error = action.payload;
       })
-
       // Change Password Cases
       .addCase(changePasswordAsync.pending, (state) => {
         state.passwordStatus = "loading";
       })
       .addCase(changePasswordAsync.fulfilled, (state) => {
         state.passwordStatus = "succeeded";
-        state.currPassword = ""; // Clear password fields after success
-        state.newPassword = "";
-        state.passwordError = null; // Clear any previous password errors
+        state.passwordError = null;
       })
       .addCase(changePasswordAsync.rejected, (state, action) => {
         state.passwordStatus = "failed";
@@ -87,6 +83,13 @@ const profileSlice = createSlice({
   },
 });
 
-// Export the action creators
-export const { updateProfile } = profileSlice.actions;
+// Export the action creators and selectors
+export const { clearErrors } = profileSlice.actions;
+
+// Selectors
+export const selectProfileUpdateStatus = (state) => state.profile.status;
+export const selectPasswordChangeStatus = (state) =>
+  state.profile.passwordStatus;
+
+// Export the reducer
 export default profileSlice.reducer;

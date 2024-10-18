@@ -18,6 +18,8 @@ const CreateSingleMessaging = () => {
   const status = useSelector(selectAccountStatus);
   const error = useSelector(selectAccountError);
 
+  console.log(accounts);
+
   useEffect(() => {
     dispatch(fetchAccountsAsync());
   }, [dispatch]);
@@ -25,18 +27,19 @@ const CreateSingleMessaging = () => {
   const [formData, setFormData] = useState({
     name: "",
     phone: "",
-    phone_sender: "",
+    phone_sender: "", // Ensure this is empty initially
     employee_id: "",
   });
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
+    console.log(`Updating ${name} with value:`, value); // Debugging log
     setFormData({ ...formData, [name]: value });
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log(formData);
+    console.log("Form Data being submitted:", formData); // Debugging log
 
     const conversation = await dispatch(
       storeConversationAsync(formData)
@@ -57,7 +60,7 @@ const CreateSingleMessaging = () => {
         </div>
 
         <form onSubmit={handleSubmit} className="mt-5">
-          <div className="row ">
+          <div className="row">
             {/* Contact Information Section */}
             <div className="col-md-6">
               <div className="form-section">
@@ -67,7 +70,7 @@ const CreateSingleMessaging = () => {
                   <input
                     type="tel"
                     id="phone"
-                    name="phone" // This is now correct
+                    name="phone"
                     className="form-control"
                     value={formData.phone}
                     onChange={handleInputChange}
@@ -80,7 +83,7 @@ const CreateSingleMessaging = () => {
                   <input
                     type="text"
                     id="name"
-                    name="name" // This is now correct
+                    name="name"
                     className="form-control"
                     value={formData.name}
                     onChange={handleInputChange}
@@ -96,7 +99,7 @@ const CreateSingleMessaging = () => {
               <div className="form-section">
                 <h3>البيانات الرئيسية</h3>
 
-                <div className="mb-3  p-3">
+                <div className="mb-3 p-3">
                   <label htmlFor="phone_sender" className="form-label">
                     حساب الواتساب
                   </label>
@@ -104,7 +107,7 @@ const CreateSingleMessaging = () => {
                     id="phone_sender"
                     name="phone_sender"
                     className="form-control"
-                    value={formData.phone_sender}
+                    value={formData.phone_sender} // Bind the value to formData.phone_sender
                     onChange={handleInputChange}
                     required
                   >
@@ -127,7 +130,7 @@ const CreateSingleMessaging = () => {
                   </select>
                 </div>
 
-                <div className="mb-3  p-3">
+                <div className="mb-3 p-3">
                   <label htmlFor="employee" className="form-label">
                     الموظف
                   </label>

@@ -4,7 +4,7 @@ import Qr from "../../assets/qrCode.svg";
 import "./How.scss";
 const How = () => {
   return (
-    <section className="how-section">
+    <section className="how-section" id="how-it-works">
       <div className="container">
         <div className="row">
           <div className="col-md-12 text-center">

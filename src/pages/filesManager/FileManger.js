@@ -1,48 +1,55 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
+import { toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 import {
-  getFilesAsync,
+  getAllFilesAsync,
+  deleteFileAsync,
   selectAllFiles,
-  selectFilesFetchStatus,
-  selectFilesFetchError,
-} from "../../store/reducers/filesSlice"; // Adjust the import path as necessary
+  selectAllFilesFetchStatus,
+  selectAllFilesFetchError,
+  selectYourSizeCount,
+  selectYourFreeSize,
+} from "../../store/reducers/filesSlice";
 import Layout from "../../components/Layout/Layout";
 import { ReactComponent as Upload } from "../../assets/upload.svg";
 import "./Files.scss";
-import { getUserData } from "../../services/profileService";
 
 const FileManager = () => {
-  const [userId, setUserId] = useState(null);
   const dispatch = useDispatch();
   const files = useSelector(selectAllFiles);
-  const filesFetchStatus = useSelector(selectFilesFetchStatus);
-  const filesFetchError = useSelector(selectFilesFetchError);
+  const filesFetchStatus = useSelector(selectAllFilesFetchStatus);
+  const filesFetchError = useSelector(selectAllFilesFetchError);
+
+  // Select the size-related values
+  const yourSizeCount = useSelector(selectYourSizeCount);
+  const yourFreeSize = useSelector(selectYourFreeSize);
+
+  const [loadingMessage, setLoadingMessage] = useState("");
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
-    const fetchUserId = async () => {
-      try {
-        const userData = await getUserData();
-        setUserId(userData.id);
-      } catch (error) {
-        console.error("Error fetching user data:", error);
-      }
-    };
-    fetchUserId();
-  }, []);
+    dispatch(getAllFilesAsync());
+  }, [dispatch]);
 
-  // Fetch files only if userId is available
-  useEffect(() => {
-    if (userId) {
-      dispatch(getFilesAsync(userId));
+  const handleDelete = async (fileId) => {
+    if (!fileId) {
+      toast.error("معرف الملف غير صالح");
+      return;
     }
-  }, [dispatch, userId]);
-
-  // Optional handleDelete function
-  const handleDelete = (fileIndex) => {
-    // Implement your delete functionality here
-    console.log(`Delete file at index: ${fileIndex}`);
-    // dispatch(deleteFileAsync(files[fileIndex].id)); // Example for dispatching delete action
+    try {
+      setLoadingMessage("جاري حذف الملف...");
+      setIsDeleting(true);
+      await dispatch(deleteFileAsync(fileId)).unwrap();
+      toast.success("تم حذف الملف بنجاح");
+      dispatch(getAllFilesAsync());
+    } catch (error) {
+      toast.error("فشل في حذف الملف. يرجى المحاولة مرة أخرى");
+    } finally {
+      setLoadingMessage("");
+      setIsDeleting(false);
+    }
   };
 
   return (
@@ -51,43 +58,65 @@ const FileManager = () => {
         <div className="row">
           <div className="col-md-12">
             <h2>إدارة الملفات</h2>
-            <p>الاستخدام: 0 / 100 ميجابايت</p>
+            <p>
+              الاستخدام: {yourSizeCount} / {yourSizeCount + yourFreeSize}{" "}
+              ميجابايت
+            </p>
             <p className="text-danger">
-              عند حذف ملف ، سيتم تخطي الرسائل التي تستخدمه ، لذلك توخى الحذر عند
+              عند حذف ملف، سيتم تخطي الرسائل التي تستخدمه، لذلك توخى الحذر عند
               الحذف
             </p>
             {filesFetchStatus === "loading" && <p>جاري تحميل الملفات...</p>}
             {filesFetchStatus === "failed" && (
-              <p className="text-danger">{filesFetchError.message}</p>
+              <p className="text-danger">
+                {filesFetchError?.message || "حدث خطأ أثناء جلب الملفات"}
+              </p>
             )}
+            {loadingMessage && <p className="text-info">{loadingMessage}</p>}
           </div>
         </div>
+
         <div className="mb-3">
           <Link
-            to="/file-managment/create"
+            to="/file-management/create"
             className="btn upload d-inline-block"
           >
             <Upload />
-            <p>تحميال ملف جديد</p>
+            <p>تحميل ملف جديد</p>
           </Link>
         </div>
+
         <h3>الملفات</h3>
         <div className="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
-          {files.map((file, index) => (
-            <div key={index} className="col">
-              <div className="card">
-                <div className="card-body d-flex justify-content-between align-items-center">
-                  <h5 className="card-title mb-0">{file.type}</h5>
-                  <button
-                    className="btn btn-outline-danger btn-sm"
-                    onClick={() => handleDelete(index)} // Use the handleDelete function here
-                  >
-                    &times;
-                  </button>
+          {/* Add a check to ensure 'files' is an array */}
+          {(!Array.isArray(files) || files.length === 0) &&
+            filesFetchStatus !== "loading" && <p>لا توجد ملفات متاحة.</p>}
+
+          {Array.isArray(files) &&
+            files.map((file, index) => {
+              if (!file || typeof file !== "object") {
+                console.error(`Invalid file object at index ${index}:`, file);
+                return null;
+              }
+              return (
+                <div key={file.id || index} className="col">
+                  <div className="card">
+                    <div className="card-body d-flex justify-content-between align-items-center">
+                      <h5 className="card-title mb-0">
+                        {file.type || "نوع غير معروف"}
+                      </h5>
+                      <button
+                        className="btn btn-outline-danger btn-sm"
+                        onClick={() => handleDelete(file.id)}
+                        disabled={isDeleting}
+                      >
+                        &times;
+                      </button>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </div>
-          ))}
+              );
+            })}
         </div>
       </div>
     </Layout>

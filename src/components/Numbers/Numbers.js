@@ -13,9 +13,9 @@ const Numbers = () => {
       <div className="container">
         <div className="row mb-4 text-center">
           <div className="col-12">
-            <h2>ثقة عملائنا هي الأهم</h2>
+            <h2 className="text-white fs-3">ثقة عملائنا هي الأهم</h2>
           </div>
-        </div>{" "}
+        </div>
       </div>
       <div className="container text-center">
         <div className="numbers-section__content p-5">

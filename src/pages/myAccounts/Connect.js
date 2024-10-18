@@ -1,24 +1,28 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import { useNavigate } from "react-router-dom"; // Import useNavigate for redirect
-import { useDispatch } from "react-redux"; // Import useDispatch
+import { useNavigate } from "react-router-dom";
+import { useDispatch } from "react-redux";
 import Layout from "../../components/Layout/Layout";
 import { getUserData } from "../../services/profileService";
-import { storeAccountAsync } from "../../store/reducers/accountSlice"; // Import the action to store account
+import { storeAccountAsync } from "../../store/reducers/accountSlice";
+import { ReactComponent as Scan } from "../../assets/scan.svg";
+import { QRCodeSVG } from "qrcode.react";
+import logo from "../../assets/scan.svg"; // Replace with your logo path
+import "./QR.scss"; // Import your CSS file
 
-function App() {
+function Connect() {
   const [qrCode, setQrCode] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
-  const [isConnected, setIsConnected] = useState(false); // To track if the client is connected
+  const [isConnected, setIsConnected] = useState(false);
   const [userId, setUserId] = useState(null);
-  const navigate = useNavigate(); // Initialize useNavigate for redirection
-  const dispatch = useDispatch(); // Initialize useDispatch for dispatching actions
+  const navigate = useNavigate();
+  const dispatch = useDispatch();
 
   useEffect(() => {
     const fetchUserId = async () => {
       try {
         const userData = await getUserData();
-        setUserId(userData.id);
+        setUserId(userData.data.id);
       } catch (error) {
         console.error("Error fetching user data:", error);
       }
@@ -27,7 +31,6 @@ function App() {
   }, []);
 
   useEffect(() => {
-    // Fetch the QR code from the backend
     const fetchQrCode = async () => {
       try {
         const response = await axios.get("http://localhost:4000/get-qr");
@@ -37,23 +40,20 @@ function App() {
       }
     };
 
-    // Fetch the phone number from the backend
     const fetchPhoneNumber = async () => {
       try {
         const response = await axios.get("http://localhost:4000/get-number");
         if (response.data.phoneNumber) {
           setPhoneNumber(response.data.phoneNumber);
-          setIsConnected(true); // Set connection status to true after fetching the number
+          setIsConnected(true);
 
-          // Dispatch the action to store the phone number in the database
           const accountData = {
             user_id: userId,
             phone: response.data.phoneNumber,
-            name: "",
+            name: "حسابك",
           };
-          await dispatch(storeAccountAsync(accountData));
 
-          // Redirect to the Account page after getting the number
+          await dispatch(storeAccountAsync(accountData));
           navigate("/my-accounts", {
             state: { phoneNumber: response.data.phoneNumber },
           });
@@ -63,46 +63,68 @@ function App() {
       }
     };
 
-    fetchQrCode(); // Fetch the QR code on load
+    fetchQrCode();
 
-    // Polling function to check if phone number is available
     const checkConnectionStatus = setInterval(() => {
-      fetchPhoneNumber(); // Poll the server for the phone number
-    }, 5000); // Check every 5 seconds
+      fetchPhoneNumber();
+    }, 5000);
 
-    // Cleanup interval on unmount
     return () => clearInterval(checkConnectionStatus);
-  }, [navigate, dispatch, userId]); // Add userId and dispatch to dependencies
+  }, [navigate, dispatch, userId]);
 
   return (
     <Layout>
       <div className="container d-flex flex-column align-items-center">
-        <h1>Scan this QR Code to Connect to WhatsApp</h1>
-        {qrCode ? (
-          <img
-            src={qrCode}
-            alt="WhatsApp QR Code"
-            style={{
-              width: "300px", // Custom width
-              height: "300px", // Custom height
-              border: "2px solid #000", // Add a border
-              borderRadius: "10px", // Make the edges rounded
-              boxShadow: "0 4px 8px rgba(0, 0, 0, 0.2)", // Add a shadow
-            }}
-          />
-        ) : (
-          <p>Loading QR Code...</p>
-        )}
+        <h1 className="mb-4">مصادقة حساب الواتساب</h1>
 
-        <h2>WhatsApp Account Info</h2>
-        {isConnected ? (
-          <p>Phone Number: {phoneNumber}</p>
-        ) : (
-          <p>Waiting for connection...</p>
-        )}
+        {/* QR Code Section */}
+        <div className="qr-code-container text-center">
+          {qrCode ? (
+            <div style={{ position: "relative", display: "inline-block" }}>
+              <QRCodeSVG
+                value={qrCode}
+                size={300}
+                bgColor={"#ffffff"}
+                fgColor={"#473786"}
+                level={"L"}
+                style={{
+                  border: "2px solid #473786",
+                  boxShadow: "0 4px 8px rgba(0, 0, 0, 0.1)",
+                }}
+              />
+              <img
+                src={logo}
+                alt="Logo"
+                style={{
+                  position: "absolute",
+                  top: "50%",
+                  left: "50%",
+                  transform: "translate(-50%, -50%)",
+                  width: "60px",
+                  height: "60px",
+                }}
+              />
+            </div>
+          ) : (
+            <div className="loading-spinner">
+              <div className="spinner-border text-primary" role="status">
+                <span className="visually-hidden">Loading...</span>
+              </div>
+              <p>Loading QR Code...</p>
+            </div>
+          )}
+        </div>
+
+        {/* Instruction Section */}
+        <div className="scan-instruction mt-5 text-center">
+          <Scan className="scan-icon" />
+          <h2 className="mt-3">
+            افتح واتساب على هاتفك المحمول ، وامسح الرمز ضوئيًا
+          </h2>
+        </div>
       </div>
     </Layout>
   );
 }
 
-export default App;
+export default Connect;

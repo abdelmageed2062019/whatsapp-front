@@ -1,7 +1,12 @@
-// contactSlice.js
+// Add these imports at the top if not already there
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
-import { uploadContacts, getContacts } from "../../services/contactService";
+import {
+  uploadContacts,
+  getContacts,
+  deleteContact,
+} from "../../services/contactService";
 
+// Async thunk to upload contacts
 export const uploadContactsAsync = createAsyncThunk(
   "contacts/uploadContacts",
   async ({ name, content }, { rejectWithValue }) => {
@@ -21,6 +26,7 @@ export const uploadContactsAsync = createAsyncThunk(
   }
 );
 
+// Async thunk to fetch contacts
 export const getContactsAsync = createAsyncThunk(
   "contacts/getContacts",
   async (_, { rejectWithValue }) => {
@@ -36,16 +42,34 @@ export const getContactsAsync = createAsyncThunk(
   }
 );
 
+// Async thunk to delete a contact
+export const deleteContactAsync = createAsyncThunk(
+  "contacts/deleteContact",
+  async ({ name }, { rejectWithValue }) => {
+    try {
+      const response = await deleteContact(name);
+      return { name, response };
+    } catch (error) {
+      if (error.response && error.response.data) {
+        return rejectWithValue(error.response.data);
+      }
+      return rejectWithValue({ message: error.message });
+    }
+  }
+);
+
 const contactSlice = createSlice({
   name: "contacts",
   initialState: {
     contacts: [],
-    status: "idle",
+    status: "idle", // For upload actions
     error: null,
     currentFileName: "",
     currentFileContent: null,
-    fetchStatus: "idle",
+    fetchStatus: "idle", // For fetching contacts
     fetchError: null,
+    deleteStatus: "idle", // For delete actions
+    deleteError: null,
   },
   reducers: {
     setCurrentFileName: (state, action) => {
@@ -61,10 +85,12 @@ const contactSlice = createSlice({
     clearError: (state) => {
       state.error = null;
       state.fetchError = null;
+      state.deleteError = null;
     },
   },
   extraReducers: (builder) => {
     builder
+      // Upload contacts
       .addCase(uploadContactsAsync.pending, (state) => {
         state.status = "loading";
         state.error = null;
@@ -80,6 +106,8 @@ const contactSlice = createSlice({
         state.status = "failed";
         state.error = action.payload;
       })
+
+      // Fetch contacts
       .addCase(getContactsAsync.pending, (state) => {
         state.fetchStatus = "loading";
         state.fetchError = null;
@@ -92,9 +120,33 @@ const contactSlice = createSlice({
       .addCase(getContactsAsync.rejected, (state, action) => {
         state.fetchStatus = "failed";
         state.fetchError = action.payload;
+      })
+
+      // Delete contact
+      .addCase(deleteContactAsync.pending, (state) => {
+        state.deleteStatus = "loading";
+        state.deleteError = null;
+      })
+      .addCase(deleteContactAsync.fulfilled, (state, action) => {
+        state.deleteStatus = "succeeded";
+        state.contacts = state.contacts.filter(
+          (contact) => contact.list_name !== action.payload.name
+        );
+        state.deleteError = null;
+      })
+      .addCase(deleteContactAsync.rejected, (state, action) => {
+        state.deleteStatus = "failed";
+        state.deleteError = action.payload;
       });
   },
 });
+
+// Define the missing selectors
+export const selectCurrentFileName = (state) => state.contacts.currentFileName;
+export const selectCurrentFileContent = (state) =>
+  state.contacts.currentFileContent;
+export const selectContactsStatus = (state) => state.contacts.status;
+export const selectContactsError = (state) => state.contacts.error;
 
 export const {
   setCurrentFileName,
@@ -105,11 +157,10 @@ export const {
 
 export default contactSlice.reducer;
 
+// Selectors for accessing contacts slice state
 export const selectAllContacts = (state) => state.contacts.contacts;
-export const selectContactsStatus = (state) => state.contacts.status;
-export const selectContactsError = (state) => state.contacts.error;
-export const selectCurrentFileName = (state) => state.contacts.currentFileName;
-export const selectCurrentFileContent = (state) =>
-  state.contacts.currentFileContent;
 export const selectContactsFetchStatus = (state) => state.contacts.fetchStatus;
 export const selectContactsFetchError = (state) => state.contacts.fetchError;
+export const selectContactsDeleteStatus = (state) =>
+  state.contacts.deleteStatus;
+export const selectContactsDeleteError = (state) => state.contacts.deleteError;

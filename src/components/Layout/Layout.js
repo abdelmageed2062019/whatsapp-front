@@ -5,7 +5,7 @@ import Footer from "../Footer/Footer";
 import SideBar from "../Sidebar/SideBar";
 
 const Layout = ({ children }) => {
-  const [isAsideVisible, setIsAsideVisible] = useState(true);
+  const [isAsideVisible, setIsAsideVisible] = useState(false);
 
   const toggleAside = () => {
     setIsAsideVisible(!isAsideVisible);

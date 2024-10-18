@@ -1,14 +1,19 @@
 import { useForm } from "react-hook-form";
 import { signup } from "../../services/authService";
 import { Link, useNavigate } from "react-router-dom";
+import { toast } from "react-toastify";
+import { useState } from "react";
 import registerImg from "../../assets/register-bg.svg";
 import Footer from "../../components/Footer/Footer";
-
 import { ReactComponent as Google } from "../../assets/bi_google.svg";
-
+import PhoneInput from "react-phone-number-input"; // Import the phone input
+import "react-phone-number-input/style.css"; // Import the default styles for the phone input
 import "./register.scss";
+
 const Register = () => {
   const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
+  const [phoneNumber, setPhoneNumber] = useState(""); // Phone number state
 
   const {
     register,
@@ -21,36 +26,44 @@ const Register = () => {
       email: "",
       phone: "",
       company: "",
-      country_code: "+91",
       password: "",
     },
   });
 
   const onSubmit = async (data) => {
-    const { name, email, phone, company, country_code, password } = data;
-    const result = await signup(
-      name,
-      email,
-      phone,
-      company,
-      country_code,
-      password
-    );
+    const { name, email, company, password } = data;
+
     try {
+      setLoading(true);
+
+      const result = await signup(
+        name,
+        email,
+        phoneNumber, // Send the phone number with country code
+        company,
+        password
+      );
+
       if (result.status === true) {
+        toast.success("Registration successful!");
         navigate("/login");
+      } else {
+        throw new Error(result.message || "Registration failed");
       }
     } catch (error) {
-      console.log("signup error: ", error);
+      toast.error(`${error}`);
+    } finally {
+      setLoading(false);
     }
   };
+
   return (
     <div className="register">
       <div className="container mt-5 text-center">
         <div className="row">
           <div className="col-md-6">
             <form onSubmit={handleSubmit(onSubmit)} className="m-auto">
-              <h2 className="text-dark">Register</h2>
+              <h2 className="text-dark">أنشاء حساب</h2>
 
               <div className="form-group">
                 <input
@@ -58,9 +71,9 @@ const Register = () => {
                   {...register("name", { required: "Name is required" })}
                   className="form-control"
                   placeholder="الاسم بالكامل"
+                  disabled={loading}
                 />
-
-                {errors.fullname && (
+                {errors.name && (
                   <p className="text-danger">{errors.name.message}</p>
                 )}
               </div>
@@ -72,47 +85,36 @@ const Register = () => {
                   })}
                   className="form-control"
                   placeholder="اسم الشركة"
+                  disabled={loading}
                 />
-
-                {errors.companyName && (
+                {errors.company && (
                   <p className="text-danger">{errors.company.message}</p>
                 )}
               </div>
+
+              {/* Phone input with country code */}
               <div className="form-group">
-                <div className="d-flex gap-4 justify-content-between">
-                  <input
-                    type="text"
-                    {...register("country_code", {
-                      required: "Country code is required",
-                    })}
-                    className="form-control me-2"
-                    style={{ width: "80px" }}
-                    placeholder="EG"
-                  />
-                  <input
-                    type="tel"
-                    {...register("phone", {
-                      required: "Phone number is required",
-                    })}
-                    className="form-control "
-                    placeholder="رقم الهاتف"
-                  />
-                </div>
-                {errors.country_code && (
-                  <p className="text-danger">{errors.country_code.message}</p>
-                )}
+                <PhoneInput
+                  placeholder="رقم الهاتف"
+                  value={phoneNumber}
+                  onChange={setPhoneNumber}
+                  defaultCountry="EG"
+                  disabled={loading}
+                  className="form-control"
+                />
                 {errors.phone && (
                   <p className="text-danger">{errors.phone.message}</p>
                 )}
               </div>
+
               <div className="form-group">
                 <input
                   type="email"
                   {...register("email", { required: "Email is required" })}
                   className="form-control"
                   placeholder="عنوان بريدك الإلكتروني"
+                  disabled={loading}
                 />
-
                 {errors.email && (
                   <p className="text-danger">{errors.email.message}</p>
                 )}
@@ -129,6 +131,7 @@ const Register = () => {
                     },
                   })}
                   placeholder="كلمة السر"
+                  disabled={loading}
                 />
                 {errors.password && (
                   <p className="text-danger">{errors.password.message}</p>
@@ -144,6 +147,7 @@ const Register = () => {
                   })}
                   className="form-control"
                   placeholder="تأكيد كلمة المرور"
+                  disabled={loading}
                 />
                 {errors.confirmPassword && (
                   <p className="text-danger">
@@ -151,13 +155,17 @@ const Register = () => {
                   </p>
                 )}
               </div>
-              <button type="submit" className="btn text-white mt-3">
-                تسجيل
+
+              <button
+                type="submit"
+                className="btn text-white mt-3"
+                disabled={loading}
+              >
+                {loading ? "جاري التسجيل..." : "تسجيل"}
               </button>
 
               <div className="register-google">
                 <p>تسجيل باستخدام حساب جوجل</p>
-
                 <Google />
               </div>
             </form>
@@ -172,7 +180,7 @@ const Register = () => {
 
             <div className="btns d-flex align-items-center justify-content-center flex-column mt-3">
               <p>هل لديك حساب؟</p>
-              <Link to={"/login"} className="btn text-white">
+              <Link to={"/login"} className="btn text-white underline_link">
                 قم بتسجيل دخولك الآن
               </Link>
             </div>

@@ -4,46 +4,42 @@ import { useDispatch, useSelector } from "react-redux";
 import {
   fetchAccountsAsync,
   selectAccounts,
-  selectAccountStatus,
-  selectAccountError,
 } from "../../store/reducers/accountSlice";
-
+import { storeCampain } from "../../services/campainService";
 import {
   getContactsAsync,
   selectAllContacts,
-  selectContactsFetchStatus,
-  selectContactsFetchError,
 } from "../../store/reducers/contactSlice";
+import { toast } from "react-toastify"; // Import Toast functions
+import { useNavigate } from "react-router-dom"; // Import useNavigate for routing
+
 import axios from "axios";
+
 const GroupMessagingForm = () => {
   const [formData, setFormData] = useState({
     campaignName: "",
     whatsappAccount: "",
-    contactList: "",
     minInterval: "",
     maxInterval: "",
     startDate: "",
+    startTime: "",
     endDate: "",
-    message: "",
+    endTime: "",
   });
 
-  const dispatch = useDispatch();
+  const [selectedContact, setSelectedContact] = useState(null);
+  const [messages, setMessages] = useState([]);
 
-  // Fetch accounts and contacts
+  const dispatch = useDispatch();
+  const accounts = useSelector(selectAccounts);
+  const contacts = useSelector(selectAllContacts);
+  const navigate = useNavigate(); // Initialize navigate
+
   useEffect(() => {
     dispatch(fetchAccountsAsync());
     dispatch(getContactsAsync());
   }, [dispatch]);
 
-  // Selectors for accounts and contacts
-  const accounts = useSelector(selectAccounts);
-  const contacts = useSelector(selectAllContacts);
-
-  console.log(contacts);
-
-  const [messages, setMessages] = useState([]);
-
-  // Mock data for image and video dropdowns
   const imageOptions = ["image1.jpg", "image2.jpg", "image3.jpg"];
   const videoOptions = ["video1.mp4", "video2.mp4", "video3.mp4"];
 
@@ -58,6 +54,10 @@ const GroupMessagingForm = () => {
     setMessages(newMessages);
   };
 
+  const handleSelectChange = (event) => {
+    setSelectedContact(event.target.value);
+  };
+
   const addMessageInput = (type) => {
     setMessages([
       ...messages,
@@ -67,6 +67,16 @@ const GroupMessagingForm = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    const selectedList = contacts.find(
+      (list) => list.list_name === selectedContact
+    );
+    const contactsToSend = selectedList
+      ? selectedList.contacts.map((contact) => ({
+          name: contact.name,
+          number: contact.phone_number.substring(1),
+        }))
+      : [];
 
     const finalMessage = messages
       .map((msg) => {
@@ -88,30 +98,52 @@ const GroupMessagingForm = () => {
       .join("\n");
 
     const dataToSend = {
-      campaignName: formData.campaignName || "Default Campaign",
-      contacts: contacts[0].contacts.map((contact) => ({
-        name: contact.name,
-        number: contact.phone_number,
-      })),
-      message: finalMessage || "Default Message",
-      startDate: new Date(formData.startDate).toISOString(),
-      endDate: new Date(formData.endDate).toISOString(),
-      minInterval: formData.minInterval || 10,
-      maxInterval: formData.maxInterval || 20,
-      whatsappAccount: formData.whatsappAccount || "Default Account",
+      name: formData.campaignName,
+      body: finalMessage,
+      whatsapp_account: formData.whatsappAccount,
+      start_date: formData.startDate,
+      start_time: formData.startTime,
+      end_date: formData.endDate,
+      end_time: formData.endTime,
+      min_delay: parseInt(formData.minInterval, 10),
+      max_delay: parseInt(formData.maxInterval, 10),
+      contact_list: contactsToSend,
     };
 
     try {
-      const response = await axios.post(
+      const localResponse = await axios.post(
         "http://localhost:4000/create-campaign",
         dataToSend
       );
-      console.log("Campaign created successfully:", response.data);
+      console.log("Campaign created successfully:", localResponse.data);
+
+      if (localResponse.status === 200) {
+        // const storeResponse = await storeCampain({
+        //   name: formData.campaignName,
+        //   body: finalMessage,
+        //   whatsapp_account: formData.whatsappAccount,
+        //   start_date: formData.startDate,
+        //   start_time: formData.startTime,
+        //   end_date: formData.endDate,
+        //   end_time: formData.endTime,
+        //   min_delay: parseInt(formData.minInterval, 10),
+        //   max_delay: parseInt(formData.maxInterval, 10),
+        //   contact_list: selectedContact,
+        // });
+        // console.log("Campaign stored successfully:", storeResponse);
+
+        toast.success("Campaign created and stored successfully!"); // Success toast
+        navigate("/group-messaging"); // Navigate after success
+      }
     } catch (error) {
       console.error(
         "Error creating campaign:",
         error.response?.data || error.message
       );
+      toast.error(
+        "Error creating campaign: " +
+          (error.response?.data.message || error.message)
+      ); // Error toast
     }
   };
 
@@ -305,18 +337,19 @@ const GroupMessagingForm = () => {
                       id="contactList"
                       name="contactList"
                       className="form-select"
-                      value={formData.contactList}
-                      onChange={handleInputChange}
+                      onChange={handleSelectChange}
+                      value={selectedContact}
                       required
                     >
                       <option value="" disabled>
                         اختر...
                       </option>
-                      {contacts.map((contact, i) => (
-                        <option key={i} value={contact.id}>
-                          {contact.list_name}
-                        </option>
-                      ))}
+                      {contacts &&
+                        contacts.map((contact, i) => (
+                          <option key={i} value={contact.list_name}>
+                            {contact.list_name}
+                          </option>
+                        ))}
                     </select>
                   </div>
                 </div>
@@ -370,10 +403,10 @@ const GroupMessagingForm = () => {
                 <div className="card-body p-4">
                   <div className="mb-3">
                     <label htmlFor="startDate" className="form-label">
-                      تاريخ بدء الحملة
+                      تاريخ بدء الحملة (التاريخ)
                     </label>
                     <input
-                      type="datetime-local"
+                      type="date"
                       id="startDate"
                       name="startDate"
                       className="form-control"
@@ -384,15 +417,45 @@ const GroupMessagingForm = () => {
                   </div>
 
                   <div className="mb-3">
-                    <label htmlFor="endDate" className="form-label">
-                      إيقاف الحملة قبل تاريخ
+                    <label htmlFor="startTime" className="form-label">
+                      وقت بدء الحملة
                     </label>
                     <input
-                      type="datetime-local"
+                      type="time"
+                      id="startTime"
+                      name="startTime"
+                      className="form-control"
+                      value={formData.startTime}
+                      onChange={handleInputChange}
+                      required
+                    />
+                  </div>
+
+                  <div className="mb-3">
+                    <label htmlFor="endDate" className="form-label">
+                      إيقاف الحملة قبل التاريخ
+                    </label>
+                    <input
+                      type="date"
                       id="endDate"
                       name="endDate"
                       className="form-control"
                       value={formData.endDate}
+                      onChange={handleInputChange}
+                      required
+                    />
+                  </div>
+
+                  <div className="mb-3">
+                    <label htmlFor="endTime" className="form-label">
+                      وقت إيقاف الحملة
+                    </label>
+                    <input
+                      type="time"
+                      id="endTime"
+                      name="endTime"
+                      className="form-control"
+                      value={formData.endTime}
                       onChange={handleInputChange}
                       required
                     />

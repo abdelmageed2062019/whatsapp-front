@@ -22,6 +22,8 @@ import Groupessaging from "../pages/groupMessaging/GroupMessaging";
 import GroupMessagingForm from "../pages/groupMessaging/GroupMessagingForm";
 import AutoReplay from "../pages/autoReply/AutoReplay";
 import Conversation from "../pages/conversation/Conversation";
+import Subscription from "./../pages/subscriptionManager/Subscription";
+
 function AppRoutes() {
   return (
     <Routes>
@@ -78,7 +80,7 @@ function AppRoutes() {
       />
 
       <Route
-        path="file-managment/create"
+        path="file-management/create"
         element={
           <PrivateRoute>
             <UploadForm />
@@ -199,6 +201,15 @@ function AppRoutes() {
         element={
           <PrivateRoute>
             <Conversation />
+          </PrivateRoute>
+        }
+      />
+
+      <Route
+        path="/subscription-manager"
+        element={
+          <PrivateRoute>
+            <Subscription />
           </PrivateRoute>
         }
       />

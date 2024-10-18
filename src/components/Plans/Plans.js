@@ -84,11 +84,11 @@ const Plans = () => {
   };
 
   return (
-    <section className="plans margin-big">
+    <section className="plans margin-big" id="whatsapp-features">
       <div className="container-fluid">
         <div className="row mb-4 text-center">
           <div className="col-12">
-            <h2>باقات أد واتس</h2>
+            <h2 className="text-white fs-3">باقات أد واتس</h2>
           </div>
         </div>
       </div>

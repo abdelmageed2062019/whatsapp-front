@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react"; // Import useState
 import { useDispatch, useSelector } from "react-redux";
 import { Link } from "react-router-dom";
 import Layout from "../../components/Layout/Layout";
@@ -9,22 +9,32 @@ import {
   selectAllContacts,
   selectContactsFetchStatus,
   selectContactsFetchError,
+  deleteContactAsync,
 } from "../../store/reducers/contactSlice";
 import { Trash2 } from "lucide-react";
+import { toast } from "react-toastify";
 
 const ContactsList = () => {
   const dispatch = useDispatch();
   const contacts = useSelector(selectAllContacts);
   const status = useSelector(selectContactsFetchStatus);
   const error = useSelector(selectContactsFetchError);
+  const [loadingDeleteId, setLoadingDeleteId] = useState(null); // Local state for tracking the loading state of the delete operation
 
   useEffect(() => {
     dispatch(getContactsAsync());
   }, [dispatch]);
 
-  const handleDelete = (id) => {
-    // TODO: Implement delete functionality
-    console.log(`Delete contact with id: ${id}`);
+  const handleDelete = async (name) => {
+    setLoadingDeleteId(name); // Set loading state to true for the specific name
+    try {
+      await dispatch(deleteContactAsync({ name })).unwrap(); // Use unwrap to handle the promise
+      toast.success("تم حذف الاتصال بنجاح");
+    } catch (error) {
+      toast.error("حدث خطأ أثناء حذف الاتصال");
+    } finally {
+      setLoadingDeleteId(null); // Reset loading state
+    }
   };
 
   return (
@@ -56,18 +66,23 @@ const ContactsList = () => {
             {contacts && contacts.length > 0 ? (
               <div className="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4 mt-5">
                 {contacts.map((contact) => (
-                  <div key={contact.id} className="col-md-6">
+                  <div key={contact.list_name} className="col-md-6">
                     <div className="card">
-                      <div className="card-body d-flex justify-content-between flex-column align-items-start">
-                        <h5 className="card-title mb-0 fw-bold fs-4">
+                      <div className="card-body d-flex justify-content-between flex-column align-items-end">
+                        <h5 className="card-title mb-0 fw-bold ">
                           {contact.list_name}
                         </h5>
-                        <p> {contact.contacts.length} جهة اتصال </p>
+                        <p>{contact.contacts.length} جهة اتصال</p>
                         <button
                           className="btn delete"
-                          onClick={() => handleDelete(contact.id)}
+                          onClick={() => handleDelete(contact.list_name)}
+                          disabled={loadingDeleteId === contact.list_name} // Disable button if this contact is being deleted
                         >
-                          <Trash2 />
+                          {loadingDeleteId === contact.list_name ? (
+                            <span>جاري الحذف...</span> // Show loading text while deleting
+                          ) : (
+                            <Trash2 />
+                          )}
                         </button>
                       </div>
                     </div>

@@ -1,4 +1,3 @@
-import { ReactComponent as Chat } from "../../assets/chat.svg";
 import { ReactComponent as Contact } from "../../assets/contacts.svg";
 import { ReactComponent as Media } from "../../assets/media.svg";
 import { ReactComponent as Whatsapp } from "../../assets/whatsapp.svg";
@@ -18,11 +17,11 @@ import "./Features.scss";
 
 const Features = () => {
   return (
-    <section className="features margin-big">
+    <section className="features margin-big" id="features">
       <div className="container">
         <div className="row mb-4 text-center">
           <div className="col-12">
-            <h2>الميزات الاحترافية</h2>
+            <h2 className="text-white fs-3">الميزات الاحترافية</h2>
           </div>
         </div>
       </div>
