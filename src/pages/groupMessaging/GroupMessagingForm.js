@@ -27,13 +27,15 @@ const GroupMessagingForm = () => {
     endTime: "",
   });
 
-  const [selectedContact, setSelectedContact] = useState(null);
+  const [selectedContact, setSelectedContact] = useState("");
   const [messages, setMessages] = useState([]);
 
   const dispatch = useDispatch();
   const accounts = useSelector(selectAccounts);
   const contacts = useSelector(selectAllContacts);
   const navigate = useNavigate(); // Initialize navigate
+
+  console.log(contacts);
 
   useEffect(() => {
     dispatch(fetchAccountsAsync());
@@ -55,6 +57,7 @@ const GroupMessagingForm = () => {
   };
 
   const handleSelectChange = (event) => {
+    console.log("Selected value:", event.target.value); // Debugging line
     setSelectedContact(event.target.value);
   };
 
@@ -71,10 +74,13 @@ const GroupMessagingForm = () => {
     const selectedList = contacts.find(
       (list) => list.list_name === selectedContact
     );
+
+    console.log(selectedList);
+
     const contactsToSend = selectedList
       ? selectedList.contacts.map((contact) => ({
           name: contact.name,
-          number: contact.phone_number.substring(1),
+          number: contact.phone_number,
         }))
       : [];
 
@@ -110,6 +116,8 @@ const GroupMessagingForm = () => {
       contact_list: contactsToSend,
     };
 
+    console.log(contactsToSend);
+
     try {
       const localResponse = await axios.post(
         "http://localhost:4000/create-campaign",
@@ -118,19 +126,19 @@ const GroupMessagingForm = () => {
       console.log("Campaign created successfully:", localResponse.data);
 
       if (localResponse.status === 200) {
-        // const storeResponse = await storeCampain({
-        //   name: formData.campaignName,
-        //   body: finalMessage,
-        //   whatsapp_account: formData.whatsappAccount,
-        //   start_date: formData.startDate,
-        //   start_time: formData.startTime,
-        //   end_date: formData.endDate,
-        //   end_time: formData.endTime,
-        //   min_delay: parseInt(formData.minInterval, 10),
-        //   max_delay: parseInt(formData.maxInterval, 10),
-        //   contact_list: selectedContact,
-        // });
-        // console.log("Campaign stored successfully:", storeResponse);
+        const storeResponse = await storeCampain({
+          name: formData.campaignName,
+          body: finalMessage,
+          whatsapp_account: formData.whatsappAccount,
+          start_date: formData.startDate,
+          start_time: formData.startTime,
+          end_date: formData.endDate,
+          end_time: formData.endTime,
+          min_delay: parseInt(formData.minInterval, 10),
+          max_delay: parseInt(formData.maxInterval, 10),
+          contact_list: selectedContact,
+        });
+        console.log("Campaign stored successfully:", storeResponse);
 
         toast.success("Campaign created and stored successfully!"); // Success toast
         navigate("/group-messaging"); // Navigate after success
@@ -344,12 +352,13 @@ const GroupMessagingForm = () => {
                       <option value="" disabled>
                         اختر...
                       </option>
-                      {contacts &&
-                        contacts.map((contact, i) => (
-                          <option key={i} value={contact.list_name}>
-                            {contact.list_name}
-                          </option>
-                        ))}
+                      {contacts
+                        ? contacts.map((list, i) => (
+                            <option key={i} value={list.list_name}>
+                              {list.list_name}
+                            </option>
+                          ))
+                        : "لا يوجد قائمة اتصال"}
                     </select>
                   </div>
                 </div>

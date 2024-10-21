@@ -10,6 +10,7 @@ export const uploadContacts = async (data) => {
         Authorization: `Bearer ${token}`,
       },
     });
+
     if (response.data && response.data.data) {
       return response.data.data;
     } else {
@@ -28,13 +29,24 @@ export const getContacts = async () => {
         Authorization: `Bearer ${token}`,
       },
     });
-    if (response.data && response.data.data) {
-      return response.data.data;
+    console.log(response);
+
+    if (response.data && response.data.status === true) {
+      if (response.data.data === 404) {
+        // No contacts found
+        return [];
+      } else if (Array.isArray(response.data.data)) {
+        // Contacts found
+        return response.data.data;
+      } else {
+        throw new Error("Unexpected data format in response");
+      }
     } else {
-      throw new Error("Unexpected response format");
+      throw new Error(response.data.msg || "Unexpected response format");
     }
   } catch (error) {
-    console.log(error);
+    console.error("Error fetching contacts:", error);
+    throw error; // Re-throw the error so the calling code can handle it
   }
 };
 

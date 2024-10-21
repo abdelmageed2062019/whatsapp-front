@@ -23,6 +23,7 @@ import GroupMessagingForm from "../pages/groupMessaging/GroupMessagingForm";
 import AutoReplay from "../pages/autoReply/AutoReplay";
 import Conversation from "../pages/conversation/Conversation";
 import Subscription from "./../pages/subscriptionManager/Subscription";
+import Reconnect from "../pages/myAccounts/Reconnect";
 
 function AppRoutes() {
   return (
@@ -102,6 +103,15 @@ function AppRoutes() {
         element={
           <PrivateRoute>
             <Connect />
+          </PrivateRoute>
+        }
+      />
+
+      <Route
+        path="my-accounts/reconnect"
+        element={
+          <PrivateRoute>
+            <Reconnect />
           </PrivateRoute>
         }
       />

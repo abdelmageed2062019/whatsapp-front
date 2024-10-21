@@ -115,7 +115,7 @@ const Conversation = () => {
         const response = await axios.post(
           "http://localhost:4000/send-message",
           {
-            number: formattedNumber,
+            number: conversationData.phone,
             message: messageToSend,
           }
         );
@@ -124,7 +124,7 @@ const Conversation = () => {
           await storeMessage({
             conversation_id: conversationData.id,
             sender_number: conversationData.phone_sender,
-            receive_number: formattedNumber,
+            receive_number: conversationData.phone,
             body: messageToSend,
             user_id: conversationData.user_id,
             employee_id: conversationData.employee_id,

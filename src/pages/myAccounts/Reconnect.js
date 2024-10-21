@@ -1,41 +1,25 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
+import io from "socket.io-client"; // Import socket.io-client
 import Layout from "../../components/Layout/Layout";
 import { getUserData } from "../../services/profileService";
-import { storeAccountAsync } from "../../store/reducers/accountSlice";
 import { ReactComponent as Scan } from "../../assets/scan.svg";
 import { QRCodeSVG } from "qrcode.react";
 import logo from "../../assets/scan.svg"; // Replace with your logo path
 import "./QR.scss"; // Import your CSS file
-import io from "socket.io-client"; // Import socket.io-client
 
-function Connect() {
+// Connect to backend WebSocket server
+const socket = io("http://localhost:4000");
+
+function Reconnect() {
   const [qrCode, setQrCode] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [isConnected, setIsConnected] = useState(false);
   const [userId, setUserId] = useState(null);
+  const [isReconnecting, setIsReconnecting] = useState(false);
   const navigate = useNavigate();
   const dispatch = useDispatch();
-
-  useEffect(() => {
-    const socket = io("http://localhost:4000"); // Connect to backend
-
-    // Listen for real-time QR code updates
-    socket.on("qrCode", (qr) => {
-      setQrCode(qr);
-    });
-
-    // Listen for connection status
-    socket.on("connected", (phone) => {
-      setPhoneNumber(phone);
-      setIsConnected(true);
-    });
-
-    // Cleanup on unmount
-    return () => socket.disconnect();
-  }, []);
 
   useEffect(() => {
     const fetchUserId = async () => {
@@ -50,41 +34,43 @@ function Connect() {
   }, []);
 
   useEffect(() => {
-    const checkConnectionStatus = async () => {
-      try {
-        const response = await axios.get("http://localhost:4000/get-number");
-        if (response.data.phoneNumber) {
-          setPhoneNumber(response.data.phoneNumber);
-          setIsConnected(true);
-        } else {
-          setIsConnected(false);
-        }
-      } catch (error) {
-        console.error("Error checking connection status:", error);
+    // Listen for QR code from the server
+    socket.on("qrCode", (qr) => {
+      setQrCode(qr);
+    });
+
+    // Listen for connection status changes
+    socket.on("connectionStatus", (statusData) => {
+      if (statusData.status === "connected") {
+        setPhoneNumber(statusData.phoneNumber);
+        setIsConnected(true);
+
+        navigate("/my-accounts", {
+          state: { phoneNumber: statusData.phoneNumber },
+        });
+      } else {
         setIsConnected(false);
       }
+    });
+
+    return () => {
+      socket.off("qrCode");
+      socket.off("connectionStatus");
     };
+  }, [dispatch, navigate, userId]);
 
-    checkConnectionStatus();
-    const statusInterval = setInterval(checkConnectionStatus, 10000); // Check every 10 seconds
-
-    return () => clearInterval(statusInterval);
-  }, []);
-
-  useEffect(() => {
-    if (isConnected && phoneNumber && userId) {
-      const accountData = {
-        user_id: userId,
-        phone_number: phoneNumber,
-        name: "حسابك",
-      };
-
-      dispatch(storeAccountAsync(accountData));
-      navigate("/my-accounts", {
-        state: { phoneNumber: phoneNumber },
+  const initiateReconnect = async () => {
+    setIsReconnecting(true);
+    try {
+      await fetch("http://localhost:4000/reconnect", {
+        method: "POST",
       });
+      // The QR code will be received through the WebSocket
+    } catch (error) {
+      console.error("Error initiating reconnection", error);
+      setIsReconnecting(false);
     }
-  }, [isConnected, phoneNumber, userId, dispatch, navigate]);
+  };
 
   return (
     <Layout>
@@ -141,4 +127,4 @@ function Connect() {
   );
 }
 
-export default Connect;
+export default Reconnect;

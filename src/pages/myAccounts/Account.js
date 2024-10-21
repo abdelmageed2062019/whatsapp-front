@@ -1,5 +1,5 @@
-import React, { useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom"; // Import useNavigate for navigation
+import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import {
   fetchAccountsAsync,
@@ -12,43 +12,59 @@ import { ReactComponent as Conect } from "../../assets/model.svg";
 import axios from "axios";
 import { toast } from "react-toastify";
 import "./Account.scss";
+import { RefreshCcw } from "lucide-react";
 
 const Account = () => {
   const dispatch = useDispatch();
-  const navigate = useNavigate(); // Initialize navigate
+  const navigate = useNavigate();
 
-  // Get accounts and status from Redux store
   const accounts = useSelector(selectAccounts);
   const status = useSelector(selectAccountStatus);
   const error = useSelector(selectAccountError);
+  const [connectionStatuses, setConnectionStatuses] = useState({});
 
-  // Fetch accounts when component mounts
   useEffect(() => {
     dispatch(fetchAccountsAsync());
   }, [dispatch]);
 
-  const deletePhoneNumber = async () => {
-    try {
-      await axios.delete("http://localhost:4000/delete-number");
-      alert("Phone number deleted successfully!");
-    } catch (error) {
-      console.error("Error deleting phone number", error);
-      alert("Failed to delete phone number. Please try again.");
+  useEffect(() => {
+    const checkConnectionStatus = async () => {
+      if (Array.isArray(accounts.numbers) && accounts.numbers.length > 0) {
+        const statuses = {};
+        for (const account of accounts.numbers) {
+          try {
+            const response = await axios.get(
+              `http://localhost:4000/connection-status/${account.phone_number}`
+            );
+            statuses[account.phone_number] = response.data.status;
+          } catch (error) {
+            console.error("Error checking connection status:", error);
+            statuses[account.phone_number] = "error";
+          }
+        }
+        setConnectionStatuses(statuses);
+      }
+    };
+
+    if (status === "succeeded") {
+      checkConnectionStatus();
     }
+  }, [accounts, status]);
+
+  const handleReconnect = (phoneNumber) => {
+    navigate("/my-accounts/reconnect", { state: { phoneNumber } });
   };
 
   const handleAddAccount = () => {
-    const planLimit = accounts.plan?.plan_no; // Assuming accounts.plan.plan_no gives the limit
-    const accountCount = accounts.numbers?.length || 0; // Safe access to the length
+    const planLimit = accounts.plan?.plan_no;
+    const accountCount = accounts.numbers?.length || 0;
 
     if (accountCount >= planLimit) {
       toast.warning("لا يمكن ان تضيف اكثر من 1 حساب");
     } else {
-      navigate("/my-accounts/connect"); // Navigate to connect if within limit
+      navigate("/my-accounts/connect");
     }
   };
-
-  console.log(accounts);
 
   return (
     <Layout>
@@ -62,7 +78,7 @@ const Account = () => {
 
         <div className="mb-3">
           <button
-            onClick={handleAddAccount} // Call handleAddAccount on button click
+            onClick={handleAddAccount}
             className="btn account d-inline-block"
           >
             <Conect />
@@ -70,28 +86,43 @@ const Account = () => {
           </button>
         </div>
 
-        {/* Display accounts fetched from Redux store */}
         <div className="mb-3">
           <h3>الاحسابات</h3>
-
-          {/* Show loading, error, or list of accounts */}
           {status === "loading" && <p>Loading accounts...</p>}
           {status === "failed" && <p className="text-danger">Error: {error}</p>}
           {status === "succeeded" && (
             <div>
-              {/* Check if accounts.numbers is defined and has length */}
               {Array.isArray(accounts.numbers) &&
               accounts.numbers.length > 0 ? (
                 accounts.numbers.map((account, index) => (
                   <div key={index} className="account-info">
-                    <h3>{account.name}</h3>
+                    <div className="mb-4 d-flex w-100 justify-content-between align-items-center">
+                      <h3 className="m-0">{account.name}</h3>
+                      {connectionStatuses[account.phone_number] ===
+                        "disconnected" && (
+                        <span
+                          className="reconnect-option"
+                          onClick={() => handleReconnect(account.phone_number)}
+                          style={{
+                            cursor: "pointer",
+                            display: "flex",
+                            alignItems: "center",
+                          }}
+                        >
+                          <span style={{ marginRight: "8px" }}>
+                            اعادة ربط الرقم
+                          </span>
+                          <RefreshCcw
+                            className="reconnect-icon"
+                            style={{
+                              width: "20px",
+                              height: "20px",
+                            }}
+                          />
+                        </span>
+                      )}
+                    </div>
                     <h3>{account.phone_number}</h3>
-                    <button
-                      className="btn btn-danger"
-                      onClick={deletePhoneNumber}
-                    >
-                      Delete Number
-                    </button>
                   </div>
                 ))
               ) : (

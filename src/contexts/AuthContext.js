@@ -15,9 +15,13 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const login = (token) => {
-    setAuth(token);
-    localStorage.setItem("token", token);
-    navigate("/dashboard");
+    if (token) {
+      setAuth(token);
+      localStorage.setItem("token", token);
+      navigate("/dashboard");
+    } else {
+      navigate("/login");
+    }
   };
 
   const logout = () => {

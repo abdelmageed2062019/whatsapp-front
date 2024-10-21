@@ -37,3 +37,21 @@ export const getCampains = async () => {
     console.log(error);
   }
 };
+
+export const getAllCampains = async () => {
+  try {
+    const token = localStorage.getItem("token");
+    const response = await axios.get(`${API_URL}/campaign/all`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    if (response) {
+      return response;
+    } else {
+      throw new Error("Unexpected response format");
+    }
+  } catch (error) {
+    console.log(error);
+  }
+};

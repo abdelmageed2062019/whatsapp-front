@@ -4,7 +4,7 @@ import { useForm } from "react-hook-form";
 import { login as authLogin } from "../../services/authService";
 import loginImg from "../../assets/login-bg.svg";
 import { Link } from "react-router-dom";
-import { ToastContainer, toast } from "react-toastify";
+import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import "./login.scss";
 import Footer from "../../components/Footer/Footer";
@@ -18,26 +18,33 @@ const Login = () => {
   } = useForm();
 
   const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false); // New loading state
+  const [loading, setLoading] = useState(false);
 
   const onSubmit = async (data) => {
     const { email, password } = data;
-    setLoading(true); // Start loading
+    setLoading(true);
     try {
-      const token = await authLogin(email, password);
-      login(token);
+      // Attempt to log in the user
+      const response = await authLogin(email, password);
 
-      // Success toast notification
-      toast.success("Successfully logged in!");
-
-      setError("");
+      // Check if response contains error or invalid token
+      if (response) {
+        login(response);
+        toast.success("اهلا بك في الموقع");
+        // Clear input fields
+        setError(""); // Clear any previous errors
+      } else {
+        // If no token is returned, handle as an error
+        const errorMessage = response.msg || "بيانات المستخدم غير صحيحة";
+        setError(errorMessage);
+        toast.error(errorMessage);
+      }
     } catch (error) {
-      setError(error.message);
-
-      // Error toast notification
-      toast.error("Login failed. Please check your credentials.");
+      // Handle network or server errors
+      setError("بيانات المستخدم غير صحيحة");
+      toast.error("بيانات المستخدم غير صحيحة");
     } finally {
-      setLoading(false); // Stop loading
+      setLoading(false);
     }
   };
 
@@ -55,7 +62,7 @@ const Login = () => {
                   {...register("email", { required: "Email is required" })}
                   className="form-control"
                   placeholder="أدخل بريدك الالكتروني"
-                  disabled={loading} // Disable input during loading
+                  disabled={loading}
                 />
                 {errors.email && (
                   <p className="text-danger">{errors.email.message}</p>
@@ -74,19 +81,14 @@ const Login = () => {
                   })}
                   className="form-control"
                   placeholder="كلمة المرور"
-                  disabled={loading} // Disable input during loading
+                  disabled={loading}
                 />
-                {errors.password && (
-                  <p className="text-danger">{errors.password.message}</p>
-                )}
               </div>
-
-              {error && <p className="text-danger">{error}</p>}
 
               <button
                 type="submit"
                 className="btn btn-primary mt-3"
-                disabled={loading} // Disable button during loading
+                disabled={loading}
               >
                 {loading ? "جاري الدخول..." : "دخول"}
               </button>
