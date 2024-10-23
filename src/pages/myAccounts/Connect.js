@@ -12,36 +12,47 @@ import "./QR.scss"; // Import your CSS file
 import io from "socket.io-client"; // Import socket.io-client
 
 function Connect() {
-  const [qrCode, setQrCode] = useState("");
-  const [phoneNumber, setPhoneNumber] = useState("");
-  const [isConnected, setIsConnected] = useState(false);
-  const [userId, setUserId] = useState(null);
-  const navigate = useNavigate();
-  const dispatch = useDispatch();
+  const [qrCode, setQrCode] = useState(""); // Store the QR code
+  const [phoneNumber, setPhoneNumber] = useState(""); // Store the phone number once connected
+  const [isConnected, setIsConnected] = useState(false); // Track connection status
+  const [userId, setUserId] = useState(null); // Store userId from getUserData
+  const navigate = useNavigate(); // Navigation for redirection
+  const dispatch = useDispatch(); // Redux dispatch
 
+  // Establish socket connection and listen for QR code and connection status
   useEffect(() => {
-    const socket = io("http://localhost:4000"); // Connect to backend
+    const socket = io("http://localhost:4000"); // Connect to your backend using Socket.io
+
+    // Emit the request for QR code, passing the userId when available
+    if (userId) {
+      socket.emit("requestQR", userId);
+    }
 
     // Listen for real-time QR code updates
     socket.on("qrCode", (qr) => {
-      setQrCode(qr);
+      console.log("QR Code received: ", qr); // Debugging log
+
+      setQrCode(qr); // Set the QR code state when received
     });
 
-    // Listen for connection status
-    socket.on("connected", (phone) => {
-      setPhoneNumber(phone);
-      setIsConnected(true);
+    // Listen for connection status updates
+    socket.on("connectionStatus", (status) => {
+      if (status.status === "connected") {
+        setPhoneNumber(status.phoneNumber); // Update phone number if connected
+        setIsConnected(true); // Update connection status
+      }
     });
 
-    // Cleanup on unmount
+    // Cleanup the socket connection on component unmount
     return () => socket.disconnect();
-  }, []);
+  }, [userId]);
 
+  // Fetch user ID once the component is mounted
   useEffect(() => {
     const fetchUserId = async () => {
       try {
         const userData = await getUserData();
-        setUserId(userData.data.id);
+        setUserId(userData.data.id); // Set user ID from API response
       } catch (error) {
         console.error("Error fetching user data:", error);
       }
@@ -49,15 +60,16 @@ function Connect() {
     fetchUserId();
   }, []);
 
+  // Check if already connected (useful for page reloads)
   useEffect(() => {
     const checkConnectionStatus = async () => {
       try {
         const response = await axios.get("http://localhost:4000/get-number");
         if (response.data.phoneNumber) {
           setPhoneNumber(response.data.phoneNumber);
-          setIsConnected(true);
+          setIsConnected(true); // Set as connected if the phone number is available
         } else {
-          setIsConnected(false);
+          setIsConnected(false); // Not connected if no phone number found
         }
       } catch (error) {
         console.error("Error checking connection status:", error);
@@ -66,22 +78,23 @@ function Connect() {
     };
 
     checkConnectionStatus();
-    const statusInterval = setInterval(checkConnectionStatus, 10000); // Check every 10 seconds
+    const statusInterval = setInterval(checkConnectionStatus, 10000); // Poll every 10 seconds
 
-    return () => clearInterval(statusInterval);
+    return () => clearInterval(statusInterval); // Cleanup interval on unmount
   }, []);
 
+  // Store account information and navigate to another page once connected
   useEffect(() => {
     if (isConnected && phoneNumber && userId) {
       const accountData = {
         user_id: userId,
         phone_number: phoneNumber,
-        name: "حسابك",
+        name: "حسابك", // Customize this as needed
       };
 
-      dispatch(storeAccountAsync(accountData));
+      dispatch(storeAccountAsync(accountData)); // Store the connected account in Redux
       navigate("/my-accounts", {
-        state: { phoneNumber: phoneNumber },
+        state: { phoneNumber: phoneNumber }, // Redirect to accounts page
       });
     }
   }, [isConnected, phoneNumber, userId, dispatch, navigate]);
@@ -89,14 +102,14 @@ function Connect() {
   return (
     <Layout>
       <div className="container d-flex flex-column align-items-center">
-        <h1 className="mb-4">مصادقة حساب الواتساب</h1>
+        <h1 className="mb-4">WhatsApp Account Authentication</h1>
 
         {/* QR Code Section */}
         <div className="qr-code-container text-center">
           {qrCode ? (
             <div style={{ position: "relative", display: "inline-block" }}>
               <QRCodeSVG
-                value={qrCode}
+                value={qrCode} // QR code from socket
                 size={300}
                 bgColor={"#ffffff"}
                 fgColor={"#473786"}
@@ -133,7 +146,7 @@ function Connect() {
         <div className="scan-instruction mt-5 text-center">
           <Scan className="scan-icon" />
           <h2 className="mt-3">
-            افتح واتساب على هاتفك المحمول ، وامسح الرمز ضوئيًا
+            Open WhatsApp on your phone and scan the QR code
           </h2>
         </div>
       </div>

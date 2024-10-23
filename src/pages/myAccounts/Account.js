@@ -17,16 +17,17 @@ import { RefreshCcw } from "lucide-react";
 const Account = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
-
   const accounts = useSelector(selectAccounts);
   const status = useSelector(selectAccountStatus);
   const error = useSelector(selectAccountError);
   const [connectionStatuses, setConnectionStatuses] = useState({});
 
+  // Fetch account data on component mount
   useEffect(() => {
     dispatch(fetchAccountsAsync());
   }, [dispatch]);
 
+  // Check connection status of all accounts once the accounts are loaded
   useEffect(() => {
     const checkConnectionStatus = async () => {
       if (Array.isArray(accounts.numbers) && accounts.numbers.length > 0) {
@@ -51,10 +52,12 @@ const Account = () => {
     }
   }, [accounts, status]);
 
+  // Reconnect handler to navigate to reconnect page
   const handleReconnect = (phoneNumber) => {
     navigate("/my-accounts/reconnect", { state: { phoneNumber } });
   };
 
+  // Add new account handler
   const handleAddAccount = () => {
     const planLimit = accounts.plan?.plan_no;
     const accountCount = accounts.numbers?.length || 0;
@@ -98,8 +101,12 @@ const Account = () => {
                   <div key={index} className="account-info">
                     <div className="mb-4 d-flex w-100 justify-content-between align-items-center">
                       <h3 className="m-0">{account.name}</h3>
-                      {connectionStatuses[account.phone_number] ===
-                        "disconnected" && (
+
+                      {/* Display reconnect option if status is 'disconnected' or 'error' */}
+                      {(connectionStatuses[account.phone_number] ===
+                        "disconnected" ||
+                        connectionStatuses[account.phone_number] ===
+                          "error") && (
                         <span
                           className="reconnect-option"
                           onClick={() => handleReconnect(account.phone_number)}
@@ -123,6 +130,19 @@ const Account = () => {
                       )}
                     </div>
                     <h3>{account.phone_number}</h3>
+                    <p>
+                      Status:{" "}
+                      <span
+                        className={
+                          connectionStatuses[account.phone_number] ===
+                          "connected"
+                            ? "text-success"
+                            : "text-danger"
+                        }
+                      >
+                        {connectionStatuses[account.phone_number] || "unknown"}
+                      </span>
+                    </p>
                   </div>
                 ))
               ) : (

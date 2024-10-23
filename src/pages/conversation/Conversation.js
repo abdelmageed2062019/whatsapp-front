@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Layout from "../../components/Layout/Layout";
 import {
   getConversation,
@@ -9,7 +9,9 @@ import { showConversation } from "../../services/conversationService";
 import { useParams } from "react-router-dom";
 import axios from "axios";
 import io from "socket.io-client"; // Import Socket.io client
-
+import "./Conversation.scss";
+import Send from "../../assets/send.svg";
+import Media from "../../assets/chat-media.svg";
 const Conversation = () => {
   const [messages, setMessages] = useState([]);
   const [inputMessage, setInputMessage] = useState("");
@@ -24,6 +26,9 @@ const Conversation = () => {
 
   const { id: conId } = useParams();
   const [loading, setLoading] = useState(true);
+
+  // Reference for the chat container
+  const chatContainerRef = useRef(null);
 
   useEffect(() => {
     const fetchConversation = async () => {
@@ -65,11 +70,15 @@ const Conversation = () => {
     // Listen for received messages
     socket.on("messageReceived", (newMessage) => {
       receiveMessage({
-        sender_number: newMessage.from.substring(1),
+        conversation_id: conversationData.id,
+        sender_number: newMessage.from,
         receive_number: newMessage.to,
         body: newMessage.body,
+        type_message: "Text",
       });
+      setMessages((prevMessages) => [...prevMessages, newMessage]);
       // Add condition to check if the message belongs to the current conversation
+
       if (newMessage.conversation_id === conId) {
         setMessages((prevMessages) => [...prevMessages, newMessage]);
       }
@@ -86,15 +95,6 @@ const Conversation = () => {
     };
   }, [conId]);
 
-  console.log();
-
-  const formatPhoneNumber = (number) => {
-    if (number.startsWith("0")) {
-      return `2${number.substring(1)}`;
-    }
-    return number;
-  };
-
   const handleSendMessage = async () => {
     if (
       !conversationData.id ||
@@ -110,13 +110,12 @@ const Conversation = () => {
       setInputMessage("");
 
       try {
-        const formattedNumber = formatPhoneNumber(conversationData.phone);
-
         const response = await axios.post(
           "http://localhost:4000/send-message",
           {
             number: conversationData.phone,
             message: messageToSend,
+            userId: conversationData.user_id,
           }
         );
 
@@ -130,6 +129,7 @@ const Conversation = () => {
             employee_id: conversationData.employee_id,
             receiver_name: conversationData.receiver_name,
             type: "sent",
+            type_message: "Text",
           });
 
           setMessages((prevMessages) => [
@@ -154,7 +154,12 @@ const Conversation = () => {
       <div className="container-fluid d-flex flex-column vh-100">
         <div className="row flex-grow-1 overflow-auto">
           <div className="col-md-8 mx-auto">
-            <div className="chat-messages p-4">
+            {/* Add a ref to the chat messages container */}
+            <div
+              className="chat-messages p-4 d-flex flex-column justify-content-end"
+              ref={chatContainerRef}
+              style={{ height: "100%", overflowY: "auto" }}
+            >
               {messages.map((message, index) => (
                 <div
                   key={index}
@@ -176,20 +181,27 @@ const Conversation = () => {
         </div>
         <div className="row">
           <div className="col-md-8 mx-auto">
-            <div className="input-group mb-3">
+            <div className="input-group mb-3 chat-group">
+              <button
+                className="btn btn-send"
+                type="button"
+                onClick={handleSendMessage}
+              >
+                <img src={Send} alt="send" />
+              </button>
               <input
                 type="text"
-                className="form-control"
+                className="form-control chat-input"
                 placeholder="Type your message"
                 value={inputMessage}
                 onChange={(e) => setInputMessage(e.target.value)}
               />
               <button
-                className="btn btn-primary"
-                type="button"
-                onClick={handleSendMessage}
+                className="btn btn-media"
+                type="dropdown-toggle"
+                onClick={() => setMessages([])}
               >
-                Send
+                <img src={Media} alt="media" />
               </button>
             </div>
           </div>

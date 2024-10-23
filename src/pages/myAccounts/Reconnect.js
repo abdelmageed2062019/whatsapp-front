@@ -1,31 +1,58 @@
 import React, { useState, useEffect } from "react";
+import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
-import io from "socket.io-client"; // Import socket.io-client
 import Layout from "../../components/Layout/Layout";
 import { getUserData } from "../../services/profileService";
+import { storeAccountAsync } from "../../store/reducers/accountSlice";
 import { ReactComponent as Scan } from "../../assets/scan.svg";
 import { QRCodeSVG } from "qrcode.react";
 import logo from "../../assets/scan.svg"; // Replace with your logo path
 import "./QR.scss"; // Import your CSS file
-
-// Connect to backend WebSocket server
-const socket = io("http://localhost:4000");
+import io from "socket.io-client"; // Import socket.io-client
 
 function Reconnect() {
-  const [qrCode, setQrCode] = useState("");
-  const [phoneNumber, setPhoneNumber] = useState("");
-  const [isConnected, setIsConnected] = useState(false);
-  const [userId, setUserId] = useState(null);
-  const [isReconnecting, setIsReconnecting] = useState(false);
-  const navigate = useNavigate();
-  const dispatch = useDispatch();
+  const [qrCode, setQrCode] = useState(""); // Store the QR code
+  const [phoneNumber, setPhoneNumber] = useState(""); // Store the phone number once connected
+  const [isConnected, setIsConnected] = useState(false); // Track connection status
+  const [userId, setUserId] = useState(null); // Store userId from getUserData
+  const navigate = useNavigate(); // Navigation for redirection
+  const dispatch = useDispatch(); // Redux dispatch
 
+  // Establish socket connection and listen for QR code and connection status
+  useEffect(() => {
+    const socket = io("http://localhost:4000"); // Connect to your backend using Socket.io
+
+    // Emit the request for QR code, passing the userId when available
+    if (userId) {
+      socket.emit("requestQR", userId);
+    }
+
+    // Listen for real-time QR code updates
+    socket.on("qrCode", (qr) => {
+      console.log("QR Code received: ", qr); // Debugging log
+
+      setQrCode(qr); // Set the QR code state when received
+    });
+
+    // Listen for connection status updates
+    socket.on("connectionStatus", (status) => {
+      if (status.status === "connected") {
+        setPhoneNumber(status.phoneNumber); // Update phone number if connected
+        setIsConnected(true); // Update connection status
+      }
+    });
+
+    // Cleanup the socket connection on component unmount
+    return () => socket.disconnect();
+  }, [userId]);
+
+  // Fetch user ID once the component is mounted
   useEffect(() => {
     const fetchUserId = async () => {
       try {
         const userData = await getUserData();
-        setUserId(userData.data.id);
+        setUserId(userData.data.id); // Set user ID from API response
       } catch (error) {
         console.error("Error fetching user data:", error);
       }
@@ -33,56 +60,49 @@ function Reconnect() {
     fetchUserId();
   }, []);
 
+  // Check if already connected (useful for page reloads)
   useEffect(() => {
-    // Listen for QR code from the server
-    socket.on("qrCode", (qr) => {
-      setQrCode(qr);
-    });
-
-    // Listen for connection status changes
-    socket.on("connectionStatus", (statusData) => {
-      if (statusData.status === "connected") {
-        setPhoneNumber(statusData.phoneNumber);
-        setIsConnected(true);
-
-        navigate("/my-accounts", {
-          state: { phoneNumber: statusData.phoneNumber },
-        });
-      } else {
+    const checkConnectionStatus = async () => {
+      try {
+        const response = await axios.get("http://localhost:4000/get-number");
+        if (response.data.phoneNumber) {
+          setPhoneNumber(response.data.phoneNumber);
+          setIsConnected(true); // Set as connected if the phone number is available
+        } else {
+          setIsConnected(false); // Not connected if no phone number found
+        }
+      } catch (error) {
+        console.error("Error checking connection status:", error);
         setIsConnected(false);
       }
-    });
-
-    return () => {
-      socket.off("qrCode");
-      socket.off("connectionStatus");
     };
-  }, [dispatch, navigate, userId]);
 
-  const initiateReconnect = async () => {
-    setIsReconnecting(true);
-    try {
-      await fetch("http://localhost:4000/reconnect", {
-        method: "POST",
+    checkConnectionStatus();
+    const statusInterval = setInterval(checkConnectionStatus, 10000); // Poll every 10 seconds
+
+    return () => clearInterval(statusInterval); // Cleanup interval on unmount
+  }, []);
+
+  // Store account information and navigate to another page once connected
+  useEffect(() => {
+    if (isConnected && phoneNumber && userId) {
+      navigate("/my-accounts", {
+        state: { phoneNumber: phoneNumber }, // Redirect to accounts page
       });
-      // The QR code will be received through the WebSocket
-    } catch (error) {
-      console.error("Error initiating reconnection", error);
-      setIsReconnecting(false);
     }
-  };
+  }, [isConnected, phoneNumber, userId, dispatch, navigate]);
 
   return (
     <Layout>
       <div className="container d-flex flex-column align-items-center">
-        <h1 className="mb-4">مصادقة حساب الواتساب</h1>
+        <h1 className="mb-4">WhatsApp Account Authentication</h1>
 
         {/* QR Code Section */}
         <div className="qr-code-container text-center">
           {qrCode ? (
             <div style={{ position: "relative", display: "inline-block" }}>
               <QRCodeSVG
-                value={qrCode}
+                value={qrCode} // QR code from socket
                 size={300}
                 bgColor={"#ffffff"}
                 fgColor={"#473786"}
@@ -119,7 +139,7 @@ function Reconnect() {
         <div className="scan-instruction mt-5 text-center">
           <Scan className="scan-icon" />
           <h2 className="mt-3">
-            افتح واتساب على هاتفك المحمول ، وامسح الرمز ضوئيًا
+            Open WhatsApp on your phone and scan the QR code
           </h2>
         </div>
       </div>

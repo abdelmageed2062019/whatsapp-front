@@ -1,0 +1,39 @@
+.badge.bg-success {
+  color: #fff !important;
+  background-color: #322662 !important;
+  border-radius: 20px !important;
+  padding: 15px;
+  font-size: 24px !important;
+  font-weight: 300;
+}
+
+.badge.bg-primary {
+  color: #000 !important;
+  background-color: #f2f4f5 !important;
+  border-radius: 20px !important;
+  padding: 10px;
+  font-size: 24px !important;
+  font-weight: 300;
+}
+
+.chat-group {
+  border: 1px solid #f2f4f5;
+  border-radius: 30px !important;
+  margin: 0;
+  padding: 10px 20px;
+
+  .chat-input {
+    background-color: transparent;
+    border: 0;
+  }
+
+  .btn-send {
+    background-color: #322662 !important;
+    border-radius: 50% !important;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+}

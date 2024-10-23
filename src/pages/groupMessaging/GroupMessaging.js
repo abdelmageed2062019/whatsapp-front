@@ -62,9 +62,6 @@ const GroupMessaging = () => {
                   <span>{campaign.name}</span>
                   <span>{campaign.start_date}</span>
                   <span>{campaign.start_time}</span>
-                  <span className="badge bg-primary rounded-pill">
-                    {campaign.status === 0 ? "غير مفعل" : "مفعل"}
-                  </span>
                 </li>
               ))}
             </ul>

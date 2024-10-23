@@ -12,7 +12,7 @@ import {
 } from "../../store/reducers/contactSlice";
 import { toast } from "react-toastify"; // Import Toast functions
 import { useNavigate } from "react-router-dom"; // Import useNavigate for routing
-
+import { getUserData } from "../../services/profileService";
 import axios from "axios";
 
 const GroupMessagingForm = () => {
@@ -25,21 +25,30 @@ const GroupMessagingForm = () => {
     startTime: "",
     endDate: "",
     endTime: "",
+    userId: null,
   });
 
   const [selectedContact, setSelectedContact] = useState("");
   const [messages, setMessages] = useState([]);
-
   const dispatch = useDispatch();
   const accounts = useSelector(selectAccounts);
   const contacts = useSelector(selectAllContacts);
   const navigate = useNavigate(); // Initialize navigate
 
-  console.log(contacts);
-
   useEffect(() => {
     dispatch(fetchAccountsAsync());
     dispatch(getContactsAsync());
+
+    try {
+      getUserData().then((res) => {
+        setFormData({
+          ...formData,
+          userId: res.data.id,
+        });
+      });
+    } catch (error) {
+      console.error("Error fetching user data:", error);
+    }
   }, [dispatch]);
 
   const imageOptions = ["image1.jpg", "image2.jpg", "image3.jpg"];
@@ -113,7 +122,8 @@ const GroupMessagingForm = () => {
       end_time: formData.endTime,
       min_delay: parseInt(formData.minInterval, 10),
       max_delay: parseInt(formData.maxInterval, 10),
-      contact_list: contactsToSend,
+      contacts: contactsToSend,
+      userId: formData.userId,
     };
 
     console.log(contactsToSend);
