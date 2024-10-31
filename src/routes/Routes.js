@@ -24,6 +24,7 @@ import AutoReplay from "../pages/autoReply/AutoReplay";
 import Conversation from "../pages/conversation/Conversation";
 import Subscription from "./../pages/subscriptionManager/Subscription";
 import Reconnect from "../pages/myAccounts/Reconnect";
+import AutoReplayForm from "../pages/autoReply/AutoReplayForm";
 
 function AppRoutes() {
   return (
@@ -201,7 +202,7 @@ function AppRoutes() {
         path="/auto-reply/create"
         element={
           <PrivateRoute>
-            <AutoReplay />
+            <AutoReplayForm />
           </PrivateRoute>
         }
       />

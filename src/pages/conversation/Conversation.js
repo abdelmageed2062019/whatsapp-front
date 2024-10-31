@@ -6,17 +6,27 @@ import {
   receiveMessage,
 } from "../../services/messageService";
 import { showConversation } from "../../services/conversationService";
+import "react-toastify/dist/ReactToastify.css";
+import { useSelector, useDispatch } from "react-redux";
+import {
+  getAllFilesAsync,
+  selectAllFiles,
+} from "../../store/reducers/filesSlice";
 import { useParams } from "react-router-dom";
 import axios from "axios";
-import io from "socket.io-client"; // Import Socket.io client
+import io from "socket.io-client";
 import "./Conversation.scss";
 import Send from "../../assets/send.svg";
-import Media from "../../assets/chat-media.svg";
+
 const Conversation = () => {
   const [messages, setMessages] = useState([]);
   const [inputMessage, setInputMessage] = useState("");
+  const [socket, setSocket] = useState(null);
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef(null);
   const [conversationData, setConversationData] = useState({
-    id: null,
+    id: "",
     phone_sender: "",
     phone: "",
     user_id: null,
@@ -24,11 +34,78 @@ const Conversation = () => {
     employee_id: null,
   });
 
+  const [messageType, setMessageType] = useState("رسالة نصية"); // Default message type
+  const [currentMessage, setCurrentMessage] = useState({
+    content: "",
+    url: "",
+    file: "",
+    messageType: "رسالة نصية",
+  });
+
   const { id: conId } = useParams();
   const [loading, setLoading] = useState(true);
-
-  // Reference for the chat container
+  const dispatch = useDispatch();
   const chatContainerRef = useRef(null);
+  const files = useSelector(selectAllFiles);
+
+  // Scroll to bottom whenever messages change
+  useEffect(() => {
+    if (chatContainerRef.current) {
+      chatContainerRef.current.scrollTop =
+        chatContainerRef.current.scrollHeight;
+    }
+  }, [messages]);
+
+  useEffect(() => {
+    dispatch(getAllFilesAsync());
+  }, [dispatch]);
+
+  useEffect(() => {
+    // Initialize socket connection
+    const newSocket = io("https://e0bc-197-49-213-130.ngrok-free.app/");
+    setSocket(newSocket);
+
+    // Socket event handlers
+    newSocket.on("newMessage", (newMessage) => {
+      console.log("New message received:", newMessage);
+
+      const theNewMessage = newMessage.message;
+
+      const formattedMessage = {
+        conversation_id: conversationData.id,
+        sender_number: theNewMessage.from,
+        receive_number: theNewMessage.to,
+        body: theNewMessage.body,
+        type: theNewMessage.type,
+        type_message: theNewMessage.mediaUrl ? "Media" : "Text",
+        media_url: theNewMessage.mediaUrl,
+        created_at: theNewMessage.time,
+        messageId: theNewMessage.messageId, // Assuming messageId is unique
+      };
+
+      const receivedConIdParts = theNewMessage.messageId.split("_");
+      const receivedPhoneNumber = receivedConIdParts[1]
+        .replace("@c.us", "")
+        .substring(1);
+
+      console.log(newMessage.message, formattedMessage);
+
+      // Check if the message already exists to avoid duplicates
+      setMessages((prevMessages) => {
+        if (
+          conversationData.phone === receivedPhoneNumber ||
+          conversationData.phone_sender === receivedPhoneNumber
+        ) {
+          return [...prevMessages, formattedMessage];
+        }
+        return prevMessages;
+      });
+    });
+
+    return () => {
+      if (newSocket) newSocket.disconnect();
+    };
+  }, [conversationData.phone, conversationData.phone_sender]);
 
   useEffect(() => {
     const fetchConversation = async () => {
@@ -52,50 +129,153 @@ const Conversation = () => {
     const fetchMessages = async () => {
       try {
         const { messages } = await showConversation(conId);
-        // Filter messages to only include those with matching conversation_id
-        const filteredMessages = messages.filter(
-          (message) => message.conversation_id === +conId
-        );
-        console.log(filteredMessages);
+        console.log(messages);
 
+        const filteredMessages = messages.filter(
+          (msg) => msg.conversation_id === +conId
+        );
         setMessages(filteredMessages);
       } catch (error) {
         console.error("Failed to fetch messages:", error);
       }
     };
 
-    // Connect to Socket.io
-    const socket = io("http://localhost:4000");
-
-    // Listen for received messages
-    socket.on("messageReceived", (newMessage) => {
-      receiveMessage({
-        conversation_id: conversationData.id,
-        sender_number: newMessage.from,
-        receive_number: newMessage.to,
-        body: newMessage.body,
-        type_message: "Text",
-      });
-      setMessages((prevMessages) => [...prevMessages, newMessage]);
-      // Add condition to check if the message belongs to the current conversation
-
-      if (newMessage.conversation_id === conId) {
-        setMessages((prevMessages) => [...prevMessages, newMessage]);
-      }
-    });
-
     fetchConversation();
     fetchMessages();
-
-    const intervalId = setInterval(fetchMessages, 5000);
-
-    return () => {
-      clearInterval(intervalId);
-      socket.disconnect(); // Disconnect from Socket.io on unmount
-    };
   }, [conId]);
 
+  function filterMediaByType(mediaArray) {
+    // Arrays to store different types of media
+    const images = mediaArray.filter((item) => {
+      const extension = item.path.toLowerCase().split(".").pop();
+      return ["jpg", "jpeg", "png", "gif", "webp"].includes(extension);
+    });
+
+    const videos = mediaArray.filter((item) => {
+      const extension = item.path.toLowerCase().split(".").pop();
+      return ["mp4", "mov", "avi", "webm"].includes(extension);
+    });
+
+    const files = mediaArray.filter((item) => {
+      const extension = item.path.toLowerCase().split(".").pop();
+      return ["pdf", "doc", "docx", "xls", "xlsx", "txt"].includes(extension);
+    });
+
+    return {
+      images,
+      videos,
+      files,
+    };
+  }
+
+  const handleMessageChange = (field, value) => {
+    setCurrentMessage((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
+  };
+
+  const renderMessageInput = () => {
+    switch (messageType) {
+      case "رسالة نصية":
+      case "رسالة نصية برابط":
+        return (
+          <>
+            <textarea
+              className="form-control mb-2"
+              value={currentMessage.content}
+              onChange={(e) => handleMessageChange("content", e.target.value)}
+              placeholder={`اكتب محتوى ${messageType} هنا...`}
+              required
+            />
+            {messageType === "رسالة نصية برابط" && (
+              <input
+                type="url"
+                className="form-control mb-2"
+                placeholder="أدخل الرابط هنا"
+                value={currentMessage.url}
+                onChange={(e) => handleMessageChange("url", e.target.value)}
+                required
+              />
+            )}
+          </>
+        );
+      case "صورة":
+      case "صورة بنص كبير":
+        return (
+          <>
+            <select
+              className="form-select mb-2"
+              value={currentMessage.file}
+              onChange={(e) => handleMessageChange("file", e.target.value)}
+              required
+            >
+              <option value="">اختر صورة...</option>
+              {filterMediaByType(files).images.map((img) => (
+                <option key={img.id} value={img.id}>
+                  {img.type}
+                </option>
+              ))}
+            </select>
+            <textarea
+              className="form-control mb-2"
+              value={currentMessage.content}
+              onChange={(e) => handleMessageChange("content", e.target.value)}
+              placeholder="أدخل النص المصاحب للصورة هنا..."
+              required
+            />
+          </>
+        );
+      case "فيديو":
+      case "فيديو بنص كبير":
+        return (
+          <>
+            <select
+              className="form-select mb-2"
+              value={currentMessage.file}
+              onChange={(e) => handleMessageChange("file", e.target.value)}
+              required
+            >
+              <option value="">اختر فيديو...</option>
+              {filterMediaByType(files).videos.map((vid) => (
+                <option key={vid.id} value={vid.id}>
+                  {vid.type}
+                </option>
+              ))}
+            </select>
+            <textarea
+              className="form-control mb-2"
+              value={currentMessage.content}
+              onChange={(e) => handleMessageChange("content", e.target.value)}
+              placeholder="أدخل النص المصاحب للفيديو هنا..."
+              required
+            />
+          </>
+        );
+      case "ملف":
+        return (
+          <select
+            className="form-select mb-2"
+            value={currentMessage.file}
+            onChange={(e) => handleMessageChange("file", e.target.value)}
+            required
+          >
+            <option value="">اختر ملف...</option>
+            {filterMediaByType(files).files.map((file) => (
+              <option key={file.id} value={file.id}>
+                {file.type}
+              </option>
+            ))}
+          </select>
+        );
+      default:
+        return null;
+    }
+  };
+
   const handleSendMessage = async () => {
+    if (!currentMessage.content && !currentMessage.file) return;
+
     if (
       !conversationData.id ||
       !conversationData.phone_sender ||
@@ -105,103 +285,182 @@ const Conversation = () => {
       return;
     }
 
-    if (inputMessage.trim() !== "") {
-      const messageToSend = inputMessage;
-      setInputMessage("");
+    try {
+      setIsUploading(true);
+      let mediaUrl = null;
 
-      try {
-        const response = await axios.post(
-          "http://localhost:4000/send-message",
-          {
-            number: conversationData.phone,
-            message: messageToSend,
-            userId: conversationData.user_id,
-          }
+      if (currentMessage.file) {
+        const selectedFile = files.find(
+          (f) => f.id === parseInt(currentMessage.file)
         );
-
-        if (response.data.success) {
-          await storeMessage({
-            conversation_id: conversationData.id,
-            sender_number: conversationData.phone_sender,
-            receive_number: conversationData.phone,
-            body: messageToSend,
-            user_id: conversationData.user_id,
-            employee_id: conversationData.employee_id,
-            receiver_name: conversationData.receiver_name,
-            type: "sent",
-            type_message: "Text",
-          });
-
-          setMessages((prevMessages) => [
-            ...prevMessages,
-            {
-              body: messageToSend,
-              type: "sent",
-              conversation_id: conversationData.id,
-            },
-          ]);
-        } else {
-          console.error("Failed to send message:", response.data.error);
+        if (selectedFile) {
+          mediaUrl = selectedFile.path;
         }
-      } catch (error) {
-        console.error("Error sending or storing message:", error);
       }
+
+      const response = await axios.post(
+        "https://e0bc-197-49-213-130.ngrok-free.app//send-message",
+        {
+          number: `2${conversationData.phone}`,
+          message: currentMessage.content || "",
+          userId: conversationData.user_id,
+          mediaFilePath: mediaUrl
+            ? `https://whats.wolfchat.online/public/storage/${mediaUrl}`
+            : "",
+          url: currentMessage.url,
+          messageType: messageType,
+        }
+      );
+
+      if (response.data.success) {
+        const newMessageSent = {
+          conversation_id: conversationData.id,
+          sender_number: conversationData.phone_sender,
+          receive_number: conversationData.phone,
+          body: currentMessage.content || "",
+          user_id: conversationData.user_id,
+          employee_id: conversationData.employee_id,
+          receiver_name: conversationData.receiver_name,
+          type: "sent",
+          type_message: mediaUrl ? "Media" : "Text",
+          media_url: mediaUrl,
+          url: currentMessage.url,
+        };
+
+        console.log(newMessageSent);
+
+        await storeMessage(newMessageSent);
+        setMessages((prevMessages) => [...prevMessages, newMessageSent]);
+        setCurrentMessage({
+          content: "",
+          url: "",
+          file: "",
+          messageType: "رسالة نصية",
+        });
+        setMessageType("رسالة نصية");
+      }
+    } catch (error) {
+      console.error("Error sending or storing message:", error);
+    } finally {
+      setIsUploading(false);
     }
   };
+
+  const handleKeyPress = (e) => {
+    if (e.key === "Enter") {
+      handleSendMessage();
+    }
+  };
+
+  const renderMessage = (message) => {
+    const isMedia = message.type_message === "Media";
+    return (
+      <div
+        className={`mb-3 ${
+          message.type === "sent" ? "text-end" : "text-start"
+        }`}
+      >
+        <span
+          className={`badge fs-3 ${
+            message.type === "sent" ? "bg-success" : "bg-primary"
+          }`}
+        >
+          {isMedia ? (
+            <div className="media-message">
+              {message.media_url && (
+                <div className="media-preview">
+                  {message.media_url.match(/\.(jpg|jpeg|png|gif)$/i) ? (
+                    <img
+                      src={`https://whats.wolfchat.online/public/storage/${message.media_url}`}
+                      alt="media"
+                      className="media-thumbnail w-100"
+                    />
+                  ) : message.media_url.match(/\.(mp4|webm)$/i) ? (
+                    <video controls className="media-thumbnail w-100">
+                      <source
+                        src={`https://whats.wolfchat.online/public/storage/${message.media_url}`}
+                        type="video/mp4"
+                      />
+                      Your browser does not support the video tag.
+                    </video>
+                  ) : (
+                    <a
+                      href={`https://whats.wolfchat.online/public/storage/${message.media_url}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="document-link"
+                    >
+                      📎 Document
+                    </a>
+                  )}
+                </div>
+              )}
+              {message.body && (
+                <div className="media-caption">{message.body}</div>
+              )}
+            </div>
+          ) : (
+            message.body
+          )}
+        </span>
+      </div>
+    );
+  };
+
+  if (loading) {
+    return <div>Loading...</div>;
+  }
 
   return (
     <Layout>
       <div className="container-fluid d-flex flex-column vh-100">
         <div className="row flex-grow-1 overflow-auto">
           <div className="col-md-8 mx-auto">
-            {/* Add a ref to the chat messages container */}
             <div
-              className="chat-messages p-4 d-flex flex-column justify-content-end"
+              className="chat-messages p-4 d-flex flex-column"
               ref={chatContainerRef}
               style={{ height: "100%", overflowY: "auto" }}
             >
-              {messages.map((message, index) => (
-                <div
-                  key={index}
-                  className={`mb-3 ${
-                    message.type === "sent" ? "text-end" : "text-start"
-                  }`}
-                >
-                  <span
-                    className={`badge fs-3 ${
-                      message.type === "sent" ? "bg-success" : "bg-primary"
-                    }`}
-                  >
-                    {message.body}
-                  </span>
-                </div>
-              ))}
+              {messages.map((message, index) => renderMessage(message, index))}
             </div>
           </div>
         </div>
         <div className="row">
           <div className="col-md-8 mx-auto">
-            <div className="input-group mb-3 chat-group">
+            <div className="chat-group">
+              <select
+                className="form-select mb-4"
+                value={messageType}
+                onChange={(e) => setMessageType(e.target.value)}
+              >
+                <option value="رسالة نصية">رسالة نصية</option>
+                <option value="رسالة نصية برابط">رسالة نصية برابط</option>
+                <option value="صورة">صورة</option>
+                <option value="صورة بنص كبير">صورة بنص كبير</option>
+                <option value="فيديو">فيديو</option>
+                <option value="فيديو بنص كبير">فيديو بنص كبير</option>
+                <option value="ملف">ملف</option>
+              </select>
+
+              {messageType === "رسالة نصية برابط" ? (
+                <div className="url-input-wrapper">{renderMessageInput()}</div>
+              ) : messageType.includes("صورة") ||
+                messageType.includes("فيديو") ||
+                messageType === "ملف" ? (
+                <div className="media-select-wrapper">
+                  {renderMessageInput()}
+                </div>
+              ) : (
+                renderMessageInput()
+              )}
+
               <button
-                className="btn btn-send"
+                className="btn btn-send mx-auto mt-3"
                 type="button"
                 onClick={handleSendMessage}
+                disabled={isUploading}
               >
                 <img src={Send} alt="send" />
-              </button>
-              <input
-                type="text"
-                className="form-control chat-input"
-                placeholder="Type your message"
-                value={inputMessage}
-                onChange={(e) => setInputMessage(e.target.value)}
-              />
-              <button
-                className="btn btn-media"
-                type="dropdown-toggle"
-                onClick={() => setMessages([])}
-              >
-                <img src={Media} alt="media" />
               </button>
             </div>
           </div>

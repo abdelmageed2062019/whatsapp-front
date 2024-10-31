@@ -7,7 +7,7 @@ const NewSection = () => {
       <div className="container">
         <div className="row">
           <div className="col-md-5">
-            <img src={Person} class="img-fluid" alt="person" />
+            <img src={Person} className="img-fluid" alt="person" />
           </div>
 
           <div className="col-md-7 text-end mt-5 ">

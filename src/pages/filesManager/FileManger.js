@@ -59,7 +59,8 @@ const FileManager = () => {
           <div className="col-md-12">
             <h2>إدارة الملفات</h2>
             <p>
-              الاستخدام: {yourSizeCount} / {yourSizeCount + yourFreeSize}{" "}
+              الاستخدام: {yourSizeCount.toFixed(2)} /
+              {yourSizeCount + yourFreeSize}
               ميجابايت
             </p>
             <p className="text-danger">

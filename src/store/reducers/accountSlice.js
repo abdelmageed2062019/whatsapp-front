@@ -33,13 +33,13 @@ export const fetchAccountsAsync = createAsyncThunk(
 export const accountSlice = createSlice({
   name: "account",
   initialState: {
-    accounts: [], // To store a list of accounts
+    accounts: {}, // To store account details like numbers, plan, etc.
     status: "idle",
     error: null,
   },
   reducers: {
     clearAccounts: (state) => {
-      state.accounts = []; // Clear accounts if needed
+      state.accounts = {}; // Clear accounts if needed
     },
   },
   extraReducers: (builder) => {
@@ -50,7 +50,7 @@ export const accountSlice = createSlice({
       })
       .addCase(storeAccountAsync.fulfilled, (state, action) => {
         state.status = "succeeded";
-        state.accounts.push(action.payload); // Add the new account to the list
+        state.accounts = action.payload; // Update account data
       })
       .addCase(storeAccountAsync.rejected, (state, action) => {
         state.status = "failed";
@@ -62,7 +62,7 @@ export const accountSlice = createSlice({
       })
       .addCase(fetchAccountsAsync.fulfilled, (state, action) => {
         state.status = "succeeded";
-        state.accounts = action.payload; // Set the accounts list
+        state.accounts = action.payload; // Set the fetched accounts
       })
       .addCase(fetchAccountsAsync.rejected, (state, action) => {
         state.status = "failed";

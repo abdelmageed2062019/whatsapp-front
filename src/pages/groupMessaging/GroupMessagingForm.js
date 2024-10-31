@@ -13,6 +13,11 @@ import {
 import { toast } from "react-toastify"; // Import Toast functions
 import { useNavigate } from "react-router-dom"; // Import useNavigate for routing
 import { getUserData } from "../../services/profileService";
+import {
+  getAllFilesAsync,
+  selectAllFiles,
+} from "../../store/reducers/filesSlice";
+
 import axios from "axios";
 
 const GroupMessagingForm = () => {
@@ -35,9 +40,12 @@ const GroupMessagingForm = () => {
   const contacts = useSelector(selectAllContacts);
   const navigate = useNavigate(); // Initialize navigate
 
+  const files = useSelector(selectAllFiles);
+
   useEffect(() => {
     dispatch(fetchAccountsAsync());
     dispatch(getContactsAsync());
+    dispatch(getAllFilesAsync());
 
     try {
       getUserData().then((res) => {
@@ -51,8 +59,30 @@ const GroupMessagingForm = () => {
     }
   }, [dispatch]);
 
-  const imageOptions = ["image1.jpg", "image2.jpg", "image3.jpg"];
-  const videoOptions = ["video1.mp4", "video2.mp4", "video3.mp4"];
+  // Function to filter media items by type
+  function filterMediaByType(mediaArray) {
+    // Arrays to store different types of media
+    const images = mediaArray.filter((item) => {
+      const extension = item.path.toLowerCase().split(".").pop();
+      return ["jpg", "jpeg", "png", "gif", "webp"].includes(extension);
+    });
+
+    const videos = mediaArray.filter((item) => {
+      const extension = item.path.toLowerCase().split(".").pop();
+      return ["mp4", "mov", "avi", "webm"].includes(extension);
+    });
+
+    const files = mediaArray.filter((item) => {
+      const extension = item.path.toLowerCase().split(".").pop();
+      return ["pdf", "doc", "docx", "xls", "xlsx", "txt"].includes(extension);
+    });
+
+    return {
+      images,
+      videos,
+      files,
+    };
+  }
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -77,14 +107,14 @@ const GroupMessagingForm = () => {
     ]);
   };
 
+  // Inside your GroupMessagingForm component, modify the handleSubmit function:
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     const selectedList = contacts.find(
       (list) => list.list_name === selectedContact
     );
-
-    console.log(selectedList);
 
     const contactsToSend = selectedList
       ? selectedList.contacts.map((contact) => ({
@@ -93,28 +123,31 @@ const GroupMessagingForm = () => {
         }))
       : [];
 
-    const finalMessage = messages
-      .map((msg) => {
-        switch (msg.messageType) {
-          case "رسالة نصية برابط":
-            return `${msg.content} - رابط: ${msg.url}`;
-          case "صورة":
-          case "صورة بنص كبير":
-            return `صورة: ${msg.file} - نص: ${msg.content}`;
-          case "فيديو":
-          case "فيديو بنص كبير":
-            return `فيديو: ${msg.file} - نص: ${msg.content}`;
-          case "ملف":
-            return `ملف: ${msg.file} - نص: ${msg.content}`;
-          default:
-            return msg.content;
-        }
-      })
-      .join("\n");
+    // Transform messages array to include file paths
+    const processedMessages = messages.map((msg) => {
+      // Find the corresponding file object based on the selected file ID
+      const selectedFile = files.find(
+        (file) => file.id.toString() === msg.file
+      );
+
+      return {
+        type: msg.messageType,
+        content: msg.content,
+        url: msg.url,
+        // Include the full file path if a file is selected
+        filePath: selectedFile
+          ? `https://whats.wolfchat.online/public/storage/${selectedFile.path}`
+          : null,
+        // You might want to include the file type for backend processing
+        fileType: selectedFile
+          ? selectedFile.path.split(".").pop().toLowerCase()
+          : null,
+      };
+    });
 
     const dataToSend = {
       name: formData.campaignName,
-      body: finalMessage,
+      messages: processedMessages, // Send the processed messages array
       whatsapp_account: formData.whatsappAccount,
       start_date: formData.startDate,
       start_time: formData.startTime,
@@ -126,11 +159,9 @@ const GroupMessagingForm = () => {
       userId: formData.userId,
     };
 
-    console.log(contactsToSend);
-
     try {
       const localResponse = await axios.post(
-        "http://localhost:4000/create-campaign",
+        "https://e0bc-197-49-213-130.ngrok-free.app//create-campaign",
         dataToSend
       );
       console.log("Campaign created successfully:", localResponse.data);
@@ -138,7 +169,7 @@ const GroupMessagingForm = () => {
       if (localResponse.status === 200) {
         const storeResponse = await storeCampain({
           name: formData.campaignName,
-          body: finalMessage,
+          messages: processedMessages,
           whatsapp_account: formData.whatsappAccount,
           start_date: formData.startDate,
           start_time: formData.startTime,
@@ -150,8 +181,8 @@ const GroupMessagingForm = () => {
         });
         console.log("Campaign stored successfully:", storeResponse);
 
-        toast.success("Campaign created and stored successfully!"); // Success toast
-        navigate("/group-messaging"); // Navigate after success
+        toast.success("Campaign created and stored successfully!");
+        navigate("/group-messaging");
       }
     } catch (error) {
       console.error(
@@ -161,7 +192,7 @@ const GroupMessagingForm = () => {
       toast.error(
         "Error creating campaign: " +
           (error.response?.data.message || error.message)
-      ); // Error toast
+      );
     }
   };
 
@@ -210,9 +241,9 @@ const GroupMessagingForm = () => {
               required
             >
               <option value="">اختر صورة...</option>
-              {imageOptions.map((img, i) => (
-                <option key={i} value={img}>
-                  {img}
+              {filterMediaByType(files).images.map((img, i) => (
+                <option key={i} value={img.id}>
+                  {img.type}
                 </option>
               ))}
             </select>
@@ -242,9 +273,9 @@ const GroupMessagingForm = () => {
               required
             >
               <option value="">اختر فيديو...</option>
-              {videoOptions.map((vid, i) => (
-                <option key={i} value={vid}>
-                  {vid}
+              {filterMediaByType(files).videos.map((vid, i) => (
+                <option key={i} value={vid.id}>
+                  {vid.type}
                 </option>
               ))}
             </select>
@@ -263,25 +294,22 @@ const GroupMessagingForm = () => {
       case "ملف":
         return (
           <>
-            <input
-              type="file"
+            <select
               name="file"
-              className="form-control mb-2"
+              className="form-select mb-2"
+              value={message.file}
               onChange={(e) =>
-                handleMessageChange(index, "file", e.target.files[0].name)
+                handleMessageChange(index, "file", e.target.value)
               }
               required
-            />
-            <textarea
-              name="content"
-              className="form-control mb-2"
-              value={message.content}
-              onChange={(e) =>
-                handleMessageChange(index, "content", e.target.value)
-              }
-              placeholder="أدخل النص المصاحب للملف هنا..."
-              required
-            />
+            >
+              <option value="">اختر فيديو...</option>
+              {filterMediaByType(files).files.map((file, i) => (
+                <option key={i} value={file.id}>
+                  {file.type}
+                </option>
+              ))}
+            </select>
           </>
         );
       default:

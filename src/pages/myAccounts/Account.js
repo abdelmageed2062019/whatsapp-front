@@ -13,44 +13,91 @@ import axios from "axios";
 import { toast } from "react-toastify";
 import "./Account.scss";
 import { RefreshCcw } from "lucide-react";
+import { getUserData } from "../../services/profileService";
 
 const Account = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const accounts = useSelector(selectAccounts);
   const status = useSelector(selectAccountStatus);
-  const error = useSelector(selectAccountError);
+  const errorAccount = useSelector(selectAccountError);
   const [connectionStatuses, setConnectionStatuses] = useState({});
+  const [userId, setUserId] = useState(null);
+  const [error, setError] = useState(null);
+  const [userNumber, setUserNumber] = useState(null); // State to hold the user number
 
   // Fetch account data on component mount
   useEffect(() => {
     dispatch(fetchAccountsAsync());
   }, [dispatch]);
 
+  // Fetch user ID
+  useEffect(() => {
+    const fetchUserId = async () => {
+      try {
+        const userData = await getUserData();
+        setUserId(userData.data.id);
+      } catch (error) {
+        console.error("Error fetching user data:", error);
+        setError("Failed to fetch user data");
+      }
+    };
+    fetchUserId();
+  }, []);
+
   // Check connection status of all accounts once the accounts are loaded
   useEffect(() => {
     const checkConnectionStatus = async () => {
-      if (Array.isArray(accounts.numbers) && accounts.numbers.length > 0) {
-        const statuses = {};
-        for (const account of accounts.numbers) {
-          try {
-            const response = await axios.get(
-              `http://localhost:4000/connection-status/${account.phone_number}`
-            );
-            statuses[account.phone_number] = response.data.status;
-          } catch (error) {
-            console.error("Error checking connection status:", error);
-            statuses[account.phone_number] = "error";
+      if (!userId) return;
+
+      try {
+        const response = await axios.get(
+          `https://e0bc-197-49-213-130.ngrok-free.app//connection-status/${userId}`
+        );
+
+        const { status: connectionStatus } = response.data;
+
+        // Set connection status for each account based on the response
+        if (Array.isArray(accounts.numbers) && accounts.numbers.length > 0) {
+          const updatedConnectionStatuses = accounts.numbers.reduce(
+            (acc, account) => {
+              // Assuming account.phone_number is the unique identifier
+              acc[account.phone_number] =
+                connectionStatus === "connected" ? "connected" : "disconnected";
+              return acc;
+            },
+            {}
+          );
+
+          setConnectionStatuses(updatedConnectionStatuses);
+
+          // If connected, fetch user number
+          if (connectionStatus === "connected") {
+            try {
+              const numberResponse = await axios.get(
+                `https://e0bc-197-49-213-130.ngrok-free.app//get-number/${userId}`
+              );
+              if (numberResponse.data.success) {
+                setUserNumber(numberResponse.data.userNumber); // Save user number in state
+                console.log("User Number:", numberResponse.data.userNumber);
+              } else {
+                console.error("Failed to fetch user number");
+              }
+            } catch (error) {
+              console.error("Error fetching user number:", error);
+            }
           }
         }
-        setConnectionStatuses(statuses);
+      } catch (error) {
+        console.error("Error checking connection status:", error);
+        setError(error.response?.data?.message || "Connection check failed");
       }
     };
 
     if (status === "succeeded") {
       checkConnectionStatus();
     }
-  }, [accounts, status]);
+  }, [accounts, status, userId]);
 
   // Reconnect handler to navigate to reconnect page
   const handleReconnect = (phoneNumber) => {
@@ -102,11 +149,9 @@ const Account = () => {
                     <div className="mb-4 d-flex w-100 justify-content-between align-items-center">
                       <h3 className="m-0">{account.name}</h3>
 
-                      {/* Display reconnect option if status is 'disconnected' or 'error' */}
-                      {(connectionStatuses[account.phone_number] ===
-                        "disconnected" ||
-                        connectionStatuses[account.phone_number] ===
-                          "error") && (
+                      {/* Display reconnect option if status is 'disconnected' */}
+                      {connectionStatuses[account.phone_number] ===
+                        "disconnected" && (
                         <span
                           className="reconnect-option"
                           onClick={() => handleReconnect(account.phone_number)}
@@ -147,6 +192,13 @@ const Account = () => {
                 ))
               ) : (
                 <p>No accounts available. Please add an account.</p>
+              )}
+              {/* Display user number if available */}
+              {userNumber && (
+                <div className="user-number">
+                  <h3>رقم المستخدم:</h3>
+                  <p>{userNumber}</p>
+                </div>
               )}
             </div>
           )}
