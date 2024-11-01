@@ -39,7 +39,7 @@ const AutoReplyForm = () => {
   const fetchAutoReplies = async (userId) => {
     try {
       const response = await axios.get(
-        `  https://e0bc-197-49-213-130.ngrok-free.app//auto-reply-rules/${userId}`
+        `  https://orange-chairs-repeat.loca.lt/auto-reply-rules/${userId}`
       );
       setAutoReplies(response.data);
     } catch (err) {
@@ -95,20 +95,17 @@ const AutoReplyForm = () => {
     try {
       if (editingId) {
         await axios.put(
-          `  https://e0bc-197-49-213-130.ngrok-free.app//auto-reply/${editingId}`,
+          `  https://orange-chairs-repeat.loca.lt/auto-reply/${editingId}`,
           {
             userId,
             ruleData,
           }
         );
       } else {
-        await axios.post(
-          "  https://e0bc-197-49-213-130.ngrok-free.app//auto-reply",
-          {
-            userId,
-            ruleData,
-          }
-        );
+        await axios.post("  https://orange-chairs-repeat.loca.lt/auto-reply", {
+          userId,
+          ruleData,
+        });
       }
 
       await fetchAutoReplies(userId);
@@ -138,7 +135,7 @@ const AutoReplyForm = () => {
       try {
         setLoading(true);
         await axios.delete(
-          `  https://e0bc-197-49-213-130.ngrok-free.app//auto-reply/${ruleId}`
+          `  https://orange-chairs-repeat.loca.lt/auto-reply/${ruleId}`
         );
         await fetchAutoReplies(userId);
       } catch (err) {

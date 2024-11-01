@@ -161,10 +161,11 @@ const GroupMessagingForm = () => {
 
     try {
       const localResponse = await axios.post(
-        "https://e0bc-197-49-213-130.ngrok-free.app//create-campaign",
+        "https://orange-chairs-repeat.loca.lt/create-campaign",
         dataToSend
       );
       console.log("Campaign created successfully:", localResponse.data);
+      console.log(processedMessages);
 
       if (localResponse.status === 200) {
         const storeResponse = await storeCampain({

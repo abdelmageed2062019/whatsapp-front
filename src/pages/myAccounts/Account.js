@@ -51,41 +51,45 @@ const Account = () => {
       if (!userId) return;
 
       try {
-        const response = await axios.get(
-          `https://e0bc-197-49-213-130.ngrok-free.app//connection-status/${userId}`
-        );
+        // Fetch connection status for each account
+        const updatedConnectionStatuses = {};
+        for (const account of accounts.numbers) {
+          try {
+            const response = await axios.get(
+              `https://orange-chairs-repeat.loca.lt/connection-status/${userId}`
+            );
 
-        const { status: connectionStatus } = response.data;
+            // Assuming the response contains the status for the specific account
+            const { status: connectionStatus } = response.data;
 
-        // Set connection status for each account based on the response
-        if (Array.isArray(accounts.numbers) && accounts.numbers.length > 0) {
-          const updatedConnectionStatuses = accounts.numbers.reduce(
-            (acc, account) => {
-              // Assuming account.phone_number is the unique identifier
-              acc[account.phone_number] =
-                connectionStatus === "connected" ? "connected" : "disconnected";
-              return acc;
-            },
-            {}
-          );
+            // Set connection status for the current account
+            updatedConnectionStatuses[account.phone_number] =
+              connectionStatus === "connected" ? "connected" : "disconnected";
+          } catch (error) {
+            console.error(
+              `Error checking connection status for ${account.phone_number}:`,
+              error
+            );
+            updatedConnectionStatuses[account.phone_number] = "disconnected"; // Treat as disconnected if there's an error
+          }
+        }
 
-          setConnectionStatuses(updatedConnectionStatuses);
+        setConnectionStatuses(updatedConnectionStatuses);
 
-          // If connected, fetch user number
-          if (connectionStatus === "connected") {
-            try {
-              const numberResponse = await axios.get(
-                `https://e0bc-197-49-213-130.ngrok-free.app//get-number/${userId}`
-              );
-              if (numberResponse.data.success) {
-                setUserNumber(numberResponse.data.userNumber); // Save user number in state
-                console.log("User Number:", numberResponse.data.userNumber);
-              } else {
-                console.error("Failed to fetch user number");
-              }
-            } catch (error) {
-              console.error("Error fetching user number:", error);
+        // If any account is connected, fetch user number
+        if (Object.values(updatedConnectionStatuses).includes("connected")) {
+          try {
+            const numberResponse = await axios.get(
+              `https://orange-chairs-repeat.loca.lt/get-number/${userId}`
+            );
+            if (numberResponse.data.success) {
+              setUserNumber(numberResponse.data.userNumber); // Save user number in state
+              console.log("User  Number:", numberResponse.data.userNumber);
+            } else {
+              console.error("Failed to fetch user number");
             }
+          } catch (error) {
+            console.error("Error fetching user number:", error);
           }
         }
       } catch (error) {
@@ -185,7 +189,8 @@ const Account = () => {
                             : "text-danger"
                         }
                       >
-                        {connectionStatuses[account.phone_number] || "unknown"}
+                        {connectionStatuses[account.phone_number] ||
+                          "disconnected"}
                       </span>
                     </p>
                   </div>

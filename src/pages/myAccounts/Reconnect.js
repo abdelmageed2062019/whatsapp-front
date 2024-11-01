@@ -3,7 +3,6 @@ import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import {
-  storeAccountAsync,
   selectAccountStatus,
   selectAccountError,
 } from "../../store/reducers/accountSlice";
@@ -41,7 +40,7 @@ const Reconnect = () => {
   const fetchQRCode = async (userId) => {
     try {
       const response = await axios.get(
-        `https://e0bc-197-49-213-130.ngrok-free.app//get-qr/${userId}`
+        `https://orange-chairs-repeat.loca.lt/get-qr/${userId}`
       );
       if (response.data.success) {
         setQrCode(response.data.qrCode);
@@ -74,7 +73,7 @@ const Reconnect = () => {
 
       try {
         const response = await axios.get(
-          `https://e0bc-197-49-213-130.ngrok-free.app//connection-status/${userId}`
+          `https://orange-chairs-repeat.loca.lt/connection-status/${userId}`
         );
 
         switch (response.data.status) {
@@ -83,10 +82,8 @@ const Reconnect = () => {
             // Fetch phone number if connected
             try {
               const numberResponse = await axios.get(
-                `https://e0bc-197-49-213-130.ngrok-free.app//get-number/${userId}`
+                `https://orange-chairs-repeat.loca.lt/get-number/${userId}`
               );
-              console.log(numberResponse);
-
               if (numberResponse.data.userNumber) {
                 setPhoneNumber(numberResponse.data.userNumber);
               }
@@ -122,10 +119,9 @@ const Reconnect = () => {
       return () => clearInterval(statusInterval);
     }
   }, [userId]);
+
   // Handle successful connection
   useEffect(() => {
-    console.log("isConnected", isConnected, phoneNumber, userId);
-
     if (isConnected && phoneNumber && userId) {
       navigate("/my-accounts", {
         state: { phoneNumber: phoneNumber },

@@ -41,7 +41,7 @@ const Connect = () => {
   const fetchQRCode = async (userId) => {
     try {
       const response = await axios.get(
-        `https://e0bc-197-49-213-130.ngrok-free.app//get-qr/${userId}`
+        `https://orange-chairs-repeat.loca.lt/get-qr/${userId}`
       );
       if (response.data.success) {
         setQrCode(response.data.qrCode);
@@ -74,7 +74,7 @@ const Connect = () => {
 
       try {
         const response = await axios.get(
-          `https://e0bc-197-49-213-130.ngrok-free.app//connection-status/${userId}`
+          `https://orange-chairs-repeat.loca.lt/connection-status/${userId}`
         );
 
         switch (response.data.status) {
@@ -83,7 +83,7 @@ const Connect = () => {
             // Fetch phone number if connected
             try {
               const numberResponse = await axios.get(
-                `https://e0bc-197-49-213-130.ngrok-free.app//get-number/${userId}`
+                `https://orange-chairs-repeat.loca.lt/get-number/${userId}`
               );
               console.log(numberResponse);
 

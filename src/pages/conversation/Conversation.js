@@ -62,35 +62,33 @@ const Conversation = () => {
 
   useEffect(() => {
     // Initialize socket connection
-    const newSocket = io("https://e0bc-197-49-213-130.ngrok-free.app/");
+    const newSocket = io("https://orange-chairs-repeat.loca.lt/");
     setSocket(newSocket);
 
     // Socket event handlers
     newSocket.on("newMessage", (newMessage) => {
-      console.log("New message received:", newMessage);
-
       const theNewMessage = newMessage.message;
 
       const formattedMessage = {
-        conversation_id: conversationData.id,
         sender_number: theNewMessage.from,
         receive_number: theNewMessage.to,
         body: theNewMessage.body,
-        type: theNewMessage.type,
         type_message: theNewMessage.mediaUrl ? "Media" : "Text",
-        media_url: theNewMessage.mediaUrl,
-        created_at: theNewMessage.time,
-        messageId: theNewMessage.messageId, // Assuming messageId is unique
+        file: theNewMessage.mediaUrl || "",
+        id: theNewMessage.messageId,
       };
 
       const receivedConIdParts = theNewMessage.messageId.split("_");
-      const receivedPhoneNumber = receivedConIdParts[1]
-        .replace("@c.us", "")
-        .substring(1);
+      const receivedPhoneNumber = receivedConIdParts[1].replace("@c.us", "");
 
-      console.log(newMessage.message, formattedMessage);
-
+      receiveMessage(formattedMessage);
       // Check if the message already exists to avoid duplicates
+      console.log(
+        conversationData.phone,
+        receivedPhoneNumber,
+        conversationData.phone_sender
+      );
+
       setMessages((prevMessages) => {
         if (
           conversationData.phone === receivedPhoneNumber ||
@@ -299,9 +297,9 @@ const Conversation = () => {
       }
 
       const response = await axios.post(
-        "https://e0bc-197-49-213-130.ngrok-free.app//send-message",
+        "https://orange-chairs-repeat.loca.lt/send-message",
         {
-          number: `2${conversationData.phone}`,
+          number: `${conversationData.phone}`,
           message: currentMessage.content || "",
           userId: conversationData.user_id,
           mediaFilePath: mediaUrl
