@@ -161,7 +161,7 @@ const GroupMessagingForm = () => {
 
     try {
       const localResponse = await axios.post(
-        "https://orange-chairs-repeat.loca.lt/create-campaign",
+        "https://spotty-rules-beam.loca.lt/create-campaign",
         dataToSend
       );
       console.log("Campaign created successfully:", localResponse.data);

@@ -39,7 +39,7 @@ const AutoReplyForm = () => {
   const fetchAutoReplies = async (userId) => {
     try {
       const response = await axios.get(
-        `  https://orange-chairs-repeat.loca.lt/auto-reply-rules/${userId}`
+        `  https://spotty-rules-beam.loca.lt/auto-reply-rules/${userId}`
       );
       setAutoReplies(response.data);
     } catch (err) {
@@ -95,14 +95,14 @@ const AutoReplyForm = () => {
     try {
       if (editingId) {
         await axios.put(
-          `  https://orange-chairs-repeat.loca.lt/auto-reply/${editingId}`,
+          `  https://spotty-rules-beam.loca.lt/auto-reply/${editingId}`,
           {
             userId,
             ruleData,
           }
         );
       } else {
-        await axios.post("  https://orange-chairs-repeat.loca.lt/auto-reply", {
+        await axios.post("  https://spotty-rules-beam.loca.lt/auto-reply", {
           userId,
           ruleData,
         });
@@ -135,7 +135,7 @@ const AutoReplyForm = () => {
       try {
         setLoading(true);
         await axios.delete(
-          `  https://orange-chairs-repeat.loca.lt/auto-reply/${ruleId}`
+          `  https://spotty-rules-beam.loca.lt/auto-reply/${ruleId}`
         );
         await fetchAutoReplies(userId);
       } catch (err) {

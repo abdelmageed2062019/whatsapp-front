@@ -40,7 +40,7 @@ const Reconnect = () => {
   const fetchQRCode = async (userId) => {
     try {
       const response = await axios.get(
-        `https://orange-chairs-repeat.loca.lt/get-qr/${userId}`
+        `https://spotty-rules-beam.loca.lt/get-qr/${userId}`
       );
       if (response.data.success) {
         setQrCode(response.data.qrCode);
@@ -73,7 +73,7 @@ const Reconnect = () => {
 
       try {
         const response = await axios.get(
-          `https://orange-chairs-repeat.loca.lt/connection-status/${userId}`
+          `https://spotty-rules-beam.loca.lt/connection-status/${userId}`
         );
 
         switch (response.data.status) {
@@ -82,7 +82,7 @@ const Reconnect = () => {
             // Fetch phone number if connected
             try {
               const numberResponse = await axios.get(
-                `https://orange-chairs-repeat.loca.lt/get-number/${userId}`
+                `https://spotty-rules-beam.loca.lt/get-number/${userId}`
               );
               if (numberResponse.data.userNumber) {
                 setPhoneNumber(numberResponse.data.userNumber);
@@ -134,12 +134,12 @@ const Reconnect = () => {
       <div className="container d-flex flex-column align-items-center">
         <h1 className="mb-4">WhatsApp Account Authentication</h1>
 
-        {/* Error Messages */}
+        {/* Error Messages
         {(accountError || error) && (
           <div className="alert alert-danger" role="alert">
             {accountError || error}
           </div>
-        )}
+        )} */}
 
         {/* Loading Spinner */}
         {accountStatus === "loading" && (

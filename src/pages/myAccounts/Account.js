@@ -56,7 +56,7 @@ const Account = () => {
         for (const account of accounts.numbers) {
           try {
             const response = await axios.get(
-              `https://orange-chairs-repeat.loca.lt/connection-status/${userId}`
+              `https://spotty-rules-beam.loca.lt/connection-status/${userId}`
             );
 
             // Assuming the response contains the status for the specific account
@@ -80,7 +80,7 @@ const Account = () => {
         if (Object.values(updatedConnectionStatuses).includes("connected")) {
           try {
             const numberResponse = await axios.get(
-              `https://orange-chairs-repeat.loca.lt/get-number/${userId}`
+              `https://spotty-rules-beam.loca.lt/get-number/${userId}`
             );
             if (numberResponse.data.success) {
               setUserNumber(numberResponse.data.userNumber); // Save user number in state
