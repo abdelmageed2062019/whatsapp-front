@@ -62,7 +62,7 @@ const Conversation = () => {
 
   useEffect(() => {
     // Initialize socket connection
-    const newSocket = io("https://spotty-rules-beam.loca.lt/");
+    const newSocket = io("https://cruel-radios-agree.loca.lt/");
     setSocket(newSocket);
 
     // Socket event handlers
@@ -297,7 +297,7 @@ const Conversation = () => {
       }
 
       const response = await axios.post(
-        "https://spotty-rules-beam.loca.lt/send-message",
+        "https://cruel-radios-agree.loca.lt/send-message",
         {
           number: `${conversationData.phone}`,
           message: currentMessage.content || "",

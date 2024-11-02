@@ -41,7 +41,7 @@ const Connect = () => {
   const fetchQRCode = async (userId) => {
     try {
       const response = await axios.get(
-        `https://spotty-rules-beam.loca.lt/get-qr/${userId}`
+        `https://cruel-radios-agree.loca.lt/get-qr/${userId}`
       );
       if (response.data.success) {
         setQrCode(response.data.qrCode);
@@ -74,7 +74,7 @@ const Connect = () => {
 
       try {
         const response = await axios.get(
-          `https://spotty-rules-beam.loca.lt/connection-status/${userId}`
+          `https://cruel-radios-agree.loca.lt/connection-status/${userId}`
         );
 
         switch (response.data.status) {
@@ -83,7 +83,7 @@ const Connect = () => {
             // Fetch phone number if connected
             try {
               const numberResponse = await axios.get(
-                `https://spotty-rules-beam.loca.lt/get-number/${userId}`
+                `https://cruel-radios-agree.loca.lt/get-number/${userId}`
               );
               console.log(numberResponse);
 

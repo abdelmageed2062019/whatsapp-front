@@ -161,7 +161,7 @@ const GroupMessagingForm = () => {
 
     try {
       const localResponse = await axios.post(
-        "https://spotty-rules-beam.loca.lt/create-campaign",
+        "https://cruel-radios-agree.loca.lt/create-campaign",
         dataToSend
       );
       console.log("Campaign created successfully:", localResponse.data);
