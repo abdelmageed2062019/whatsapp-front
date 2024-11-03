@@ -161,7 +161,7 @@ const GroupMessagingForm = () => {
 
     try {
       const localResponse = await axios.post(
-        "https://cruel-radios-agree.loca.lt/create-campaign",
+        "http://localhost:4000/create-campaign",
         dataToSend
       );
       console.log("Campaign created successfully:", localResponse.data);

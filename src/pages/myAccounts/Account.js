@@ -20,7 +20,7 @@ const Account = () => {
   const navigate = useNavigate();
   const accounts = useSelector(selectAccounts);
   const status = useSelector(selectAccountStatus);
-  const errorAccount = useSelector(selectAccountError);
+
   const [connectionStatuses, setConnectionStatuses] = useState({});
   const [userId, setUserId] = useState(null);
   const [error, setError] = useState(null);
@@ -56,7 +56,7 @@ const Account = () => {
         for (const account of accounts.numbers) {
           try {
             const response = await axios.get(
-              `https://cruel-radios-agree.loca.lt/connection-status/${userId}`
+              `http://localhost:4000/connection-status/${userId}`
             );
 
             // Assuming the response contains the status for the specific account
@@ -80,7 +80,7 @@ const Account = () => {
         if (Object.values(updatedConnectionStatuses).includes("connected")) {
           try {
             const numberResponse = await axios.get(
-              `https://cruel-radios-agree.loca.lt/get-number/${userId}`
+              `http://localhost:4000/get-number/${userId}`
             );
             if (numberResponse.data.success) {
               setUserNumber(numberResponse.data.userNumber); // Save user number in state

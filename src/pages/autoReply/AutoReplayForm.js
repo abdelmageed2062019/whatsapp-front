@@ -39,7 +39,7 @@ const AutoReplyForm = () => {
   const fetchAutoReplies = async (userId) => {
     try {
       const response = await axios.get(
-        `  https://cruel-radios-agree.loca.lt/auto-reply-rules/${userId}`
+        `  http://localhost:4000/auto-reply-rules/${userId}`
       );
       setAutoReplies(response.data);
     } catch (err) {
@@ -94,15 +94,12 @@ const AutoReplyForm = () => {
 
     try {
       if (editingId) {
-        await axios.put(
-          `  https://cruel-radios-agree.loca.lt/auto-reply/${editingId}`,
-          {
-            userId,
-            ruleData,
-          }
-        );
+        await axios.put(`  http://localhost:4000/auto-reply/${editingId}`, {
+          userId,
+          ruleData,
+        });
       } else {
-        await axios.post("  https://cruel-radios-agree.loca.lt/auto-reply", {
+        await axios.post("  http://localhost:4000/auto-reply", {
           userId,
           ruleData,
         });
@@ -134,9 +131,7 @@ const AutoReplyForm = () => {
     if (window.confirm("هل أنت متأكد من حذف هذا الرد الآلي؟")) {
       try {
         setLoading(true);
-        await axios.delete(
-          `  https://cruel-radios-agree.loca.lt/auto-reply/${ruleId}`
-        );
+        await axios.delete(`  http://localhost:4000/auto-reply/${ruleId}`);
         await fetchAutoReplies(userId);
       } catch (err) {
         setError("Failed to delete auto-reply rule");

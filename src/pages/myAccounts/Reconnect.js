@@ -9,6 +9,7 @@ import {
 import { getUserData } from "../../services/profileService";
 import Layout from "../../components/Layout/Layout";
 import { ReactComponent as Scan } from "../../assets/scan.svg";
+import { useWhatsApp } from "../../contexts/WhatsappContext"; // Import the WhatsApp context
 
 const Reconnect = () => {
   const [qrCode, setQrCode] = useState("");
@@ -20,7 +21,9 @@ const Reconnect = () => {
   const dispatch = useDispatch();
 
   const accountStatus = useSelector(selectAccountStatus);
-  const accountError = useSelector(selectAccountError);
+  const { clientReady } = useWhatsApp(); // Use WhatsApp context
+
+  console.log(clientReady);
 
   // Fetch user ID on component mount
   useEffect(() => {
@@ -40,7 +43,7 @@ const Reconnect = () => {
   const fetchQRCode = async (userId) => {
     try {
       const response = await axios.get(
-        `https://cruel-radios-agree.loca.lt/get-qr/${userId}`
+        `http://localhost:4000/get-qr/${userId}`
       );
       if (response.data.success) {
         setQrCode(response.data.qrCode);
@@ -73,7 +76,7 @@ const Reconnect = () => {
 
       try {
         const response = await axios.get(
-          `https://cruel-radios-agree.loca.lt/connection-status/${userId}`
+          `http://localhost:4000/connection-status/${userId}`
         );
 
         switch (response.data.status) {
@@ -82,7 +85,7 @@ const Reconnect = () => {
             // Fetch phone number if connected
             try {
               const numberResponse = await axios.get(
-                `https://cruel-radios-agree.loca.lt/get-number/${userId}`
+                `http://localhost:4000/get-number/${userId}`
               );
               if (numberResponse.data.userNumber) {
                 setPhoneNumber(numberResponse.data.userNumber);

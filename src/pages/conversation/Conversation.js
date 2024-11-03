@@ -6,7 +6,6 @@ import {
   receiveMessage,
 } from "../../services/messageService";
 import { showConversation } from "../../services/conversationService";
-import "react-toastify/dist/ReactToastify.css";
 import { useSelector, useDispatch } from "react-redux";
 import {
   getAllFilesAsync,
@@ -14,17 +13,13 @@ import {
 } from "../../store/reducers/filesSlice";
 import { useParams } from "react-router-dom";
 import axios from "axios";
-import io from "socket.io-client";
+import { useWhatsApp } from "../../contexts/WhatsappContext"; // Adjust the path accordingly
 import "./Conversation.scss";
 import Send from "../../assets/send.svg";
 
 const Conversation = () => {
   const [messages, setMessages] = useState([]);
-  const [inputMessage, setInputMessage] = useState("");
-  const [socket, setSocket] = useState(null);
-  const [selectedFile, setSelectedFile] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
-  const fileInputRef = useRef(null);
   const [conversationData, setConversationData] = useState({
     id: "",
     phone_sender: "",
@@ -33,8 +28,7 @@ const Conversation = () => {
     receiver_name: "",
     employee_id: null,
   });
-
-  const [messageType, setMessageType] = useState("رسالة نصية"); // Default message type
+  const [messageType, setMessageType] = useState("رسالة نصية");
   const [currentMessage, setCurrentMessage] = useState({
     content: "",
     url: "",
@@ -47,6 +41,7 @@ const Conversation = () => {
   const dispatch = useDispatch();
   const chatContainerRef = useRef(null);
   const files = useSelector(selectAllFiles);
+  const { socket, clientReady } = useWhatsApp(); // Use WhatsApp context
 
   // Scroll to bottom whenever messages change
   useEffect(() => {
@@ -60,51 +55,7 @@ const Conversation = () => {
     dispatch(getAllFilesAsync());
   }, [dispatch]);
 
-  useEffect(() => {
-    // Initialize socket connection
-    const newSocket = io("https://cruel-radios-agree.loca.lt/");
-    setSocket(newSocket);
-
-    // Socket event handlers
-    newSocket.on("newMessage", (newMessage) => {
-      const theNewMessage = newMessage.message;
-
-      const formattedMessage = {
-        sender_number: theNewMessage.from,
-        receive_number: theNewMessage.to,
-        body: theNewMessage.body,
-        type_message: theNewMessage.mediaUrl ? "Media" : "Text",
-        file: theNewMessage.mediaUrl || "",
-        id: theNewMessage.messageId,
-      };
-
-      const receivedConIdParts = theNewMessage.messageId.split("_");
-      const receivedPhoneNumber = receivedConIdParts[1].replace("@c.us", "");
-
-      receiveMessage(formattedMessage);
-      // Check if the message already exists to avoid duplicates
-      console.log(
-        conversationData.phone,
-        receivedPhoneNumber,
-        conversationData.phone_sender
-      );
-
-      setMessages((prevMessages) => {
-        if (
-          conversationData.phone === receivedPhoneNumber ||
-          conversationData.phone_sender === receivedPhoneNumber
-        ) {
-          return [...prevMessages, formattedMessage];
-        }
-        return prevMessages;
-      });
-    });
-
-    return () => {
-      if (newSocket) newSocket.disconnect();
-    };
-  }, [conversationData.phone, conversationData.phone_sender]);
-
+  // Fetch conversation and messages
   useEffect(() => {
     const fetchConversation = async () => {
       try {
@@ -127,8 +78,6 @@ const Conversation = () => {
     const fetchMessages = async () => {
       try {
         const { messages } = await showConversation(conId);
-        console.log(messages);
-
         const filteredMessages = messages.filter(
           (msg) => msg.conversation_id === +conId
         );
@@ -142,8 +91,44 @@ const Conversation = () => {
     fetchMessages();
   }, [conId]);
 
-  function filterMediaByType(mediaArray) {
-    // Arrays to store different types of media
+  // Handle new message from socket
+  useEffect(() => {
+    if (!socket) return;
+
+    socket.on("newMessage", (newMessage) => {
+      const theNewMessage = newMessage.message;
+
+      const formattedMessage = {
+        sender_number: theNewMessage.from,
+        receive_number: theNewMessage.to,
+        body: theNewMessage.body,
+        type_message: theNewMessage.mediaUrl ? "Media" : "Text",
+        file: theNewMessage.mediaUrl || "",
+        id: theNewMessage.messageId,
+      };
+
+      const receivedConIdParts = theNewMessage.messageId.split("_");
+      const receivedPhoneNumber = receivedConIdParts[1].replace("@c.us", "");
+
+      receiveMessage(formattedMessage);
+
+      setMessages((prevMessages) => {
+        if (
+          conversationData.phone === receivedPhoneNumber ||
+          conversationData.phone_sender === receivedPhoneNumber
+        ) {
+          return [...prevMessages, formattedMessage];
+        }
+        return prevMessages;
+      });
+    });
+
+    return () => {
+      socket.off("newMessage");
+    };
+  }, [socket, conversationData]);
+
+  const filterMediaByType = (mediaArray) => {
     const images = mediaArray.filter((item) => {
       const extension = item.path.toLowerCase().split(".").pop();
       return ["jpg", "jpeg", "png", "gif", "webp"].includes(extension);
@@ -159,18 +144,11 @@ const Conversation = () => {
       return ["pdf", "doc", "docx", "xls", "xlsx", "txt"].includes(extension);
     });
 
-    return {
-      images,
-      videos,
-      files,
-    };
-  }
+    return { images, videos, files };
+  };
 
   const handleMessageChange = (field, value) => {
-    setCurrentMessage((prev) => ({
-      ...prev,
-      [field]: value,
-    }));
+    setCurrentMessage((prev) => ({ ...prev, [field]: value }));
   };
 
   const renderMessageInput = () => {
@@ -272,6 +250,11 @@ const Conversation = () => {
   };
 
   const handleSendMessage = async () => {
+    if (!clientReady) {
+      console.error("WhatsApp client is not ready yet.");
+      return;
+    }
+
     if (!currentMessage.content && !currentMessage.file) return;
 
     if (
@@ -296,19 +279,16 @@ const Conversation = () => {
         }
       }
 
-      const response = await axios.post(
-        "https://cruel-radios-agree.loca.lt/send-message",
-        {
-          number: `${conversationData.phone}`,
-          message: currentMessage.content || "",
-          userId: conversationData.user_id,
-          mediaFilePath: mediaUrl
-            ? `https://whats.wolfchat.online/public/storage/${mediaUrl}`
-            : "",
-          url: currentMessage.url,
-          messageType: messageType,
-        }
-      );
+      const response = await axios.post("http://localhost:4000/send-message", {
+        number: `${conversationData.phone}`,
+        message: currentMessage.content || "",
+        userId: conversationData.user_id,
+        mediaFilePath: mediaUrl
+          ? `https://whats.wolfchat.online/public/storage/${mediaUrl}`
+          : "",
+        url: currentMessage.url,
+        messageType: messageType,
+      });
 
       if (response.data.success) {
         const newMessageSent = {
@@ -325,8 +305,6 @@ const Conversation = () => {
           url: currentMessage.url,
         };
 
-        console.log(newMessageSent);
-
         await storeMessage(newMessageSent);
         setMessages((prevMessages) => [...prevMessages, newMessageSent]);
         setCurrentMessage({
@@ -341,12 +319,6 @@ const Conversation = () => {
       console.error("Error sending or storing message:", error);
     } finally {
       setIsUploading(false);
-    }
-  };
-
-  const handleKeyPress = (e) => {
-    if (e.key === "Enter") {
-      handleSendMessage();
     }
   };
 

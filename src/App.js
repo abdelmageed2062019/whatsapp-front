@@ -8,6 +8,7 @@ import { Provider } from "react-redux";
 import { FileProvider } from "./contexts/FileContext";
 import "./i18n";
 import { PlatformsProvider } from "./contexts/PlatformsContext";
+import { WhatsAppProvider } from "./contexts/WhatsappContext";
 
 function App() {
   const { t, i18n } = useTranslation();
@@ -21,14 +22,16 @@ function App() {
     <Provider store={store}>
       <Router>
         <AuthProvider>
-          <PlatformsProvider>
-            <FileProvider>
-              {/* <h1>{t("welcome")}</h1>
+          <WhatsAppProvider>
+            <PlatformsProvider>
+              <FileProvider>
+                {/* <h1>{t("welcome")}</h1>
         <button onClick={() => changeLanguage("en")}>English</button>
         <button onClick={() => changeLanguage("ar")}>عربي</button> */}
-              <AppRoutes />
-            </FileProvider>
-          </PlatformsProvider>
+                <AppRoutes />
+              </FileProvider>
+            </PlatformsProvider>
+          </WhatsAppProvider>
         </AuthProvider>
         <ToastContainer
           position="top-right"
