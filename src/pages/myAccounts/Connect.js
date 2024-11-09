@@ -145,12 +145,12 @@ const Connect = () => {
       <div className="container d-flex flex-column align-items-center">
         <h1 className="mb-4">WhatsApp Account Authentication</h1>
 
-        {/* Error Messages
+        {/* Error Messages */}
         {(accountError || error) && (
           <div className="alert alert-danger" role="alert">
             {accountError || error}
           </div>
-        )} */}
+        )}
 
         {/* Loading Spinner */}
         {accountStatus === "loading" && (

@@ -13,9 +13,9 @@ import {
 } from "../../store/reducers/filesSlice";
 import { useParams } from "react-router-dom";
 import axios from "axios";
-import { useWhatsApp } from "../../contexts/WhatsappContext"; // Adjust the path accordingly
 import "./Conversation.scss";
 import Send from "../../assets/send.svg";
+import { Socket } from "socket.io-client";
 
 const Conversation = () => {
   const [messages, setMessages] = useState([]);
@@ -41,8 +41,7 @@ const Conversation = () => {
   const dispatch = useDispatch();
   const chatContainerRef = useRef(null);
   const files = useSelector(selectAllFiles);
-  const { socket, clientReady } = useWhatsApp(); // Use WhatsApp context
-
+  let socket = new Socket("http://localhost:4000/");
   // Scroll to bottom whenever messages change
   useEffect(() => {
     if (chatContainerRef.current) {
@@ -101,7 +100,7 @@ const Conversation = () => {
       const formattedMessage = {
         sender_number: theNewMessage.from,
         receive_number: theNewMessage.to,
-        body: theNewMessage.body,
+        body: theNewMessage.body || "...",
         type_message: theNewMessage.mediaUrl ? "Media" : "Text",
         file: theNewMessage.mediaUrl || "",
         id: theNewMessage.messageId,
@@ -250,11 +249,6 @@ const Conversation = () => {
   };
 
   const handleSendMessage = async () => {
-    if (!clientReady) {
-      console.error("WhatsApp client is not ready yet.");
-      return;
-    }
-
     if (!currentMessage.content && !currentMessage.file) return;
 
     if (

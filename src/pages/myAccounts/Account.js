@@ -20,7 +20,7 @@ const Account = () => {
   const navigate = useNavigate();
   const accounts = useSelector(selectAccounts);
   const status = useSelector(selectAccountStatus);
-
+  const errorAccount = useSelector(selectAccountError);
   const [connectionStatuses, setConnectionStatuses] = useState({});
   const [userId, setUserId] = useState(null);
   const [error, setError] = useState(null);

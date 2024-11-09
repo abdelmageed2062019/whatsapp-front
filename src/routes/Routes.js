@@ -25,6 +25,8 @@ import Conversation from "../pages/conversation/Conversation";
 import Subscription from "./../pages/subscriptionManager/Subscription";
 import Reconnect from "../pages/myAccounts/Reconnect";
 import AutoReplayForm from "../pages/autoReply/AutoReplayForm";
+import SmartBot from "../pages/smartRobot/SmartBot";
+import BotResponseCreator from "../pages/smartRobot/CreateSmartBot";
 
 function AppRoutes() {
   return (
@@ -188,7 +190,7 @@ function AppRoutes() {
           </PrivateRoute>
         }
       />
-
+      {/* 
       <Route
         path="/auto-reply"
         element={
@@ -206,6 +208,24 @@ function AppRoutes() {
           </PrivateRoute>
         }
       />
+
+      <Route
+        path="/smart-bot"
+        element={
+          <PrivateRoute>
+            <SmartBot />
+          </PrivateRoute>
+        }
+      />
+
+      <Route
+        path="/smart-bot/create"
+        element={
+          <PrivateRoute>
+            <BotResponseCreator />
+          </PrivateRoute>
+        }
+      /> */}
 
       <Route
         path="/conversation/:id"

@@ -22,16 +22,14 @@ function App() {
     <Provider store={store}>
       <Router>
         <AuthProvider>
-          <WhatsAppProvider>
-            <PlatformsProvider>
-              <FileProvider>
-                {/* <h1>{t("welcome")}</h1>
+          <PlatformsProvider>
+            <FileProvider>
+              {/* <h1>{t("welcome")}</h1>
         <button onClick={() => changeLanguage("en")}>English</button>
         <button onClick={() => changeLanguage("ar")}>عربي</button> */}
-                <AppRoutes />
-              </FileProvider>
-            </PlatformsProvider>
-          </WhatsAppProvider>
+              <AppRoutes />
+            </FileProvider>
+          </PlatformsProvider>
         </AuthProvider>
         <ToastContainer
           position="top-right"

@@ -9,7 +9,6 @@ import {
 import { getUserData } from "../../services/profileService";
 import Layout from "../../components/Layout/Layout";
 import { ReactComponent as Scan } from "../../assets/scan.svg";
-import { useWhatsApp } from "../../contexts/WhatsappContext"; // Import the WhatsApp context
 
 const Reconnect = () => {
   const [qrCode, setQrCode] = useState("");
@@ -21,9 +20,7 @@ const Reconnect = () => {
   const dispatch = useDispatch();
 
   const accountStatus = useSelector(selectAccountStatus);
-  const { clientReady } = useWhatsApp(); // Use WhatsApp context
-
-  console.log(clientReady);
+  const accountError = useSelector(selectAccountError);
 
   // Fetch user ID on component mount
   useEffect(() => {
@@ -137,12 +134,12 @@ const Reconnect = () => {
       <div className="container d-flex flex-column align-items-center">
         <h1 className="mb-4">WhatsApp Account Authentication</h1>
 
-        {/* Error Messages
+        {/* Error Messages */}
         {(accountError || error) && (
           <div className="alert alert-danger" role="alert">
             {accountError || error}
           </div>
-        )} */}
+        )}
 
         {/* Loading Spinner */}
         {accountStatus === "loading" && (
